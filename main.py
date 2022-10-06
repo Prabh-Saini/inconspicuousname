@@ -27,7 +27,7 @@ q = \
 ############
 #  CONFIG  #
 ############
-version_number = "0.0.1"
+version_number = "0.9.0 BETA"
 options = Options()
 json = load(open('credentials.json'))
 credentials = []
