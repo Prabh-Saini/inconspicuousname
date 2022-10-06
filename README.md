@@ -1,5 +1,5 @@
 # M$ Rewards
-A python program that literally makes you money! 
+A selenium-python program that literally makes you money! 
 ## Features
 M$ Rewards has many features including:
 * Automatic Mobile search
