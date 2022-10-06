@@ -40,7 +40,7 @@ M$ Calculator is a way to calculate how long it will take to purchase an item us
     "how much does it cost to buy your item in $": 100
   }
 ```
-The first option you must answer is "redeem_microsoft_gift_card?", which basically means, can the product you want to buy be bought on the Microsoft or Xbox store? If so, type in "yes", if not enter in "no". The second option is "how much does it cost to buy your item in $", which self explaintory-ly asks how expensive is the product you wish to purchase. To run M$ Calculator, use the command down below (Note if you enabled: "always use this app to open .py files", you can simply just double click "calculate_time.py")
+The first option you must answer is "redeem_microsoft_gift_card?", which basically means, can the product you want to buy be bought on the Microsoft or Xbox store? If so, type in "yes", if not enter in "no". The second option is "how much does it cost to buy your item in ", which self explaintory-ly asks how expensive is the product you wish to purchase. To run M$ Calculator, use the command down below (Note if you enabled: "always use this app to open .py files", you can simply just double click "calculate_time.py")
 ``` 
 python calculate_time.py
 ```
