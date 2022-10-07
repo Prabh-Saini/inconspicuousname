@@ -1,5 +1,7 @@
+# When I wrote this, only god and I knew what was going on,
+# Now only god knows.
 import urllib.parse
-from datetime import datetime, timedelta, date
+from datetime import datetime
 from inspect import currentframe
 from json import load, loads
 from platform import system as psys
@@ -7,7 +9,7 @@ from random import randint
 from sys import exit
 from time import sleep as wait
 from typing import Literal
-from requests import get
+import requests
 from selenium import webdriver as w
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
@@ -27,7 +29,7 @@ q = \
 ############
 #  CONFIG  #
 ############
-version_number = "0.9.0 BETA"
+version_number = "0.9.2 BETA"
 options = Options()
 json = load(open('credentials.json'))
 credentials = []
@@ -104,19 +106,29 @@ def logout(userid: int, b: w):
     b.execute_script(f'window.location.href = "https://rewards.bing.com/Signout";')
     cp(f"Successfully logged out of {gd(userid)}.", "green")
     b.execute_script(f'window.location.href = "https://rewards.bing.com/Signout";')
-    wait_time = randint(15, 20)
-    wait(wait_time)
-    cp(f"Attempting to log in, in {wait_time} seconds", "blue")
+    wait(randint(15, 20))
 
 
 def search(searches: int, b: w):
-    sa = get_google_trends(49)  # sa = search array
-    for abcdefghijklmnopqrstuvwxyz in range(1, randint(searches + 1, searches + 10) + 1):
-        d = randint(0, len(sa) - 1)
-        b.execute_script(f'window.location.href = "https://bing.com/?q={sa[d]}";')  # haha sad
-        sign_in(b)
-        sa.pop(d)
-        wait(randint(4, 11))
+    sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000").text.splitlines()  # sa = search array
+    try:
+        for abcdefghijklmnopqrstuvwxyz in range(1, randint(searches + 1, searches + 10) + 1):
+            d = randint(0, len(sa) - 1)
+            b.execute_script(f'window.location.href = "https://bing.com/?q={sa[d]}";')  # haha sad
+            sign_in(b)
+            sa.pop(d)
+            wait(randint(4, 7))
+    except Exception as e:
+        error(e)
+        try:
+            d = randint(0, len(sa) - 1)
+            b.execute_script(f'window.location.href = "https://bing.com/?q={sa[d]}";')  # haha sad v2
+            sign_in(b)
+            sa.pop(d)
+            wait(randint(4, 11))
+        except Exception as e:
+            error(e)
+
     wait(randint(34, 64))
 
 
@@ -147,7 +159,7 @@ def error(text, current_time: bool = True, line_number: bool = True, finish_proc
 
 
 def element_exist(_by: By, element: str, b: w) -> bool:
-    """"Returns True if given element exists else False"""
+    """if element exists, return true - had to write this because i will very quickly forget wtf im doing"""
     try:
         b.find_element(_by, element)
     except NoSuchElementException:
@@ -155,8 +167,7 @@ def element_exist(_by: By, element: str, b: w) -> bool:
     return True
 
 
-# todo: log
-# def log(initialize: bool = False) -> None:
+# def log(logs: str = "n/a", initialize: bool = False) -> None:
 #     if initialize:
 #         try:
 #             with open(f'logs/{log_name}', 'w') as f:
@@ -168,29 +179,13 @@ def element_exist(_by: By, element: str, b: w) -> bool:
 #     else:
 #         if log_status:
 #             try:
-#                 f = open("demofile2.txt", "a")
-#                 f.write("Now the file has more content!")
+#                 f = open("logs/{log_name}", "a")
+#                 f.write(f'[{datetime.now().strftime("%H:%M:%S")}] {logs}')
 #                 f.close()
 #             except Exception as e:
 #                 error(f'Logs failed to update. ({e})', line_number=True)
 #         else:
 #             cp("[WARNING] Logs failed to update.", "yellow")
-
-
-def get_google_trends(words: int) -> list:
-    e, st = 0, []
-    while len(st) < words:
-        e += 1
-        r = get(
-            f"https://trends.google.com/trends/api/dailytrends?hl=en-US&ed={str((date.today() - timedelta(days=e)).strftime('%Y%m%d'))}&geo=AU&ns=15")
-        gt = loads(r.text[6:])
-        for t in gt['default']['trendingSearchesDays'][0]['trendingSearches']:
-            st.append(t['title']['query'].lower())
-            for rt in t['relatedQueries']:
-                st.append(rt['query'].lower())
-        st = list(set(st))
-    del st[words:(len(st) + 1)]
-    return st
 
 
 def gd(uid: int, opt: Literal["username", "password"] = "username") -> str:  # gd = get details :)
@@ -347,7 +342,7 @@ def daily_set_quiz(card_number: int, b: w):
                     wait(2)
                 b.find_element(By.ID, answer).click()
                 wait(5)
-                if not wait_until_q_loads(waituntilquizloadsorwaituntilquestionsrefresh="questions", b=b):
+                if not wait_until_q_loads(b=b, quiz_question="questions"):
                     return
             wait(5)
         elif numberop == 4:
@@ -361,7 +356,7 @@ def daily_set_quiz(card_number: int, b: w):
                         wait(2)
                     b.find_element(By.ID, "rqAnswerOption" + str(asdfghjkl)).click()
                     wait(5)
-                    if not wait_until_q_loads(waituntilquizloadsorwaituntilquestionsrefresh="questions", b=b):
+                    if not wait_until_q_loads(b=b, quiz_question="questions"):
                         return
                     break
             wait(5)
@@ -494,14 +489,14 @@ def get_answer_code(key: str, string: str) -> str:
     return str(t)
 
 
-def wait_until_q_loads(b: w, waituntilquizloadsorwaituntilquestionsrefresh: Literal["quiz", "questions"] = "quiz"):
+def wait_until_q_loads(b: w, quiz_question: Literal["quiz", "questions"] = "quiz"):
     tries = 0
     refreshcount = 0
     while True:
         try:
-            if waituntilquizloadsorwaituntilquestionsrefresh == "quiz":
+            if quiz_question == "quiz":
                 b.find_element(By.XPATH, '//*[@id="currentQuestionContainer"]')
-            elif waituntilquizloadsorwaituntilquestionsrefresh == "questions":
+            elif quiz_question == "questions":
                 b.find_elements(By.CLASS_NAME, 'rqECredits')[0]
             return True
         except Exception as e:
@@ -637,7 +632,7 @@ def complete_more_promotion_quiz(card_number: int, b: w):
             for answer in answers:
                 b.find_element(By.ID, answer).click()
                 wait(5)
-                if not wait_until_q_loads(waituntilquizloadsorwaituntilquestionsrefresh="questions", b=b):
+                if not wait_until_q_loads(b=b, quiz_question="questions"):
                     return
             wait(5)
         elif numberop == 4:
@@ -647,7 +642,7 @@ def complete_more_promotion_quiz(card_number: int, b: w):
                         "data-option") == correct_correct_option:
                     b.find_element(By.ID, "rqAnswerOption" + str(asdfghjkl)).click()
                     wait(5)
-                    if not wait_until_q_loads(waituntilquizloadsorwaituntilquestionsrefresh="questions", b=b):
+                    if not wait_until_q_loads(b=b, quiz_question="questions"):
                         return
                     break
             wait(5)
@@ -751,7 +746,7 @@ def sign_in(b: w) -> None:
 
 
 def mobile_sign_in(userid: int, b: w):
-    sa = get_google_trends(49)
+    sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000").text.splitlines()
     b.execute_script(f'window.location.href = "https://bing.com/?q={sa[randint(0, len(sa) - 1)]}";')
     wait(2)
     b.find_element(By.ID, 'mHamburger').click()  # //*[@id="mHamburger"]
@@ -767,41 +762,177 @@ def mobile_sign_in(userid: int, b: w):
         cp('[INFO] Bing did not automatically connect to your specified M$ Rewards account, it has automatically been resolved now.', "purple")
 
 
+def another_stupid_sign_in(userid: int, b: w):
+    sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000").text.splitlines()
+    b.execute_script(f'window.location.href = "https://bing.com/?q={sa[765]}";')
+    wait(2)
+    logged_in_account = b.find_element(By.ID, 'id_n').text
+    if logged_in_account.lower().replace(" ", "") in gd(userid, "username"):
+        return
+    else:
+        WDWait(b, 100).until(ec.element_to_be_clickable((By.ID, 'id_n'))).click()
+        wait(0.5)
+        WDWait(b, 100).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="b_idProviders"]/li[1]/a/span[2]'))).click()
+        wait(4)
+        cp('[INFO] Bing did not automatically connect to your specified M$ Rewards account, it has automatically been resolved now.',
+           "purple")
+
+
 #######################
 #  HOPE FOR THE BEST  #
 #######################
 def main(u: int = 0):
     # Mobile search - first in case something fails on desktop search
-    b = create_b_instance(mobile_instance=True)
-    login(u, b)
-    mobile_sign_in(u, b)
-    search(2, b)
-    wait(20)  # 20
-    logout(u, b)
-    b.close()
+    def mobile():
+        b = create_b_instance(mobile_instance=True)
+
+        try:
+            login(u, b)
+        except Exception as e:
+            error(e)
+            try:
+                login(u, b)
+            except Exception as e:
+                error(e)
+
+        wait(5)
+
+        try:
+            mobile_sign_in(u, b)
+        except Exception as e:
+            error(e)
+            try:
+                mobile_sign_in(u, b)
+            except Exception as e:
+                error(e)
+
+        wait(5)
+        search(30, b)
+        wait(20)
+
+        try:
+            logout(u, b)
+        except Exception as e:
+            error(e)
+            try:
+                logout(u, b)
+            except Exception as e:
+                error(e)
+
+        wait(2)
+        try:
+            b.close()
+        except Exception as e:
+            error(e)
+            try:
+                b.close()
+            except Exception as e:
+                error(e)
+
+        wait(5)
 
     # Desktop search
-    b = create_b_instance(mobile_instance=False)
-    login(u, b)
-    check_points(b, u)
-    complete_daily_set(b)
-    wait(60)
-    complete_punch_cards(b)
-    wait(60)
-    complete_more_promotions(b=b)
-    wait(60)
-    search(2, b)  # 34
-    wait(20)
-    logout(u, b)
-    b.close()
+    def desktop():
+        b = create_b_instance(mobile_instance=False)
 
-    cp(f"[SUCCESS] {gd(u)} has completed it's daily Microsoft Reward tasks.", "green")
+        try:
+            login(u, b)
+        except Exception as e:
+            error(e)
+            try:
+                login(u, b)
+            except Exception as e:
+                error(e)
+
+        wait(5)
+
+        try:
+            another_stupid_sign_in(u, b)
+        except Exception as e:
+            error(e)
+            another_stupid_sign_in(u, b)
+            try:
+                login(u, b)
+            except Exception as e:
+                error(e)
+
+        wait(30)
+
+        try:
+            check_points(b, u)
+        except Exception as e:
+            error(e)
+            try:
+                check_points(b, u)
+            except Exception as e:
+                error(e)
+
+        try:
+            complete_daily_set(b)
+        except Exception as e:
+            error(e)
+            try:
+                complete_daily_set(b)
+            except Exception as e:
+                error(e)
+
+        wait(60)
+
+        try:
+            complete_punch_cards(b)
+        except Exception as e:
+            error(e)
+            try:
+                complete_punch_cards(b)
+            except Exception as e:
+                error(e)
+
+        wait(60)
+
+        try:
+            complete_more_promotions(b=b)
+        except Exception as e:
+            error(e)
+            try:
+                complete_more_promotions(b=b)
+            except Exception as e:
+                error(e)
+
+        wait(60)
+        search(34, b)
+        wait(20)
+
+        try:
+            logout(u, b)
+        except Exception as e:
+            error(e)
+            try:
+                logout(u, b)
+            except Exception as e:
+                error(e)
+
+        wait(2)
+
+        try:
+            b.close()
+        except Exception as e:
+            error(e)
+            try:
+                b.close()
+            except Exception as e:
+                error(e)
+        cp(f"[SUCCESS] {gd(u)} has completed it's daily Microsoft Reward tasks.", "green")
+
+    mobile()
+    desktop()
 
 
 if __name__ == '__main__':
     logo()
+    # log(initialize=True)
+    # log("tacos")
     for mainuserid in range(0, accounts):
         if tacos == "yes":
             main(mainuserid)
         else:
-            error("You do not like tacos. Script will not run until you fix your opinion in credentials.json.", finish_process=True)
+            error("You do not like tacos. Script will not run until you fix your opinion in credentials.json", finish_process=True)
