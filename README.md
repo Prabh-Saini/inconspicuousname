@@ -10,6 +10,11 @@ M$ Rewards has many features including:
 * Detect locked, suspended, and "unusual activity" accounts. 
 * Should be bot undectable, who really knows though.  
 * Multi-account management (support for as many accounts as you want, although the most ever tested was 3)
+## First time set up
+To initally run M$ Rewards, you will need to open up command line and type in:
+```
+pip install -r requirements.txt
+```
 ## Configuration
 BEFORE READING ON FURTHER MAKE SURE THE FIRST NAME ON YOUR MICROSOFT ACCOUNT IS IN YOUR EMAIL EG. Sarah and sarahjones@gmail.com, Harry and harrylarry@outlook.com, or Tacos and tacosaretasty@tacos.com. The ONLY exception to this rule is if your microsoft account does not have a first name and just shows its email, eg. email@email.com = email@email.com.
 To add add/change microsoft acccounts, open "credentials.json", and change the file accordingly. Keep in mind, the more accounts you run, the higher chance you get detected as a bot, many people recommend to have a maximum of 2-3 accounts running. For example:
