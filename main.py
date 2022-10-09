@@ -1,5 +1,3 @@
-# When I wrote this, only god and I knew what was going on,
-# Now only god knows.
 import urllib.parse
 from datetime import datetime
 from inspect import currentframe
@@ -14,9 +12,10 @@ from selenium import webdriver as w
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.edge.options import Options
-from selenium.webdriver.edge.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait as WDWait
+from webdriver_manager.microsoft import EdgeChromiumDriverManager
+from selenium.webdriver.edge.service import Service
 
 q = \
     "███╗   ███╗▄▄███▄▄·    ██████╗ ███████╗██╗    ██╗ █████╗ ██████╗ ██████╗ ███████╗" \
@@ -29,7 +28,7 @@ q = \
 ############
 #  CONFIG  #
 ############
-version_number = "0.9.2 BETA"
+version_number = "0.9.3 BETA"
 options = Options()
 json = load(open('credentials.json'))
 credentials = []
@@ -72,7 +71,17 @@ def create_b_instance(mobile_instance: Literal[True, False]) -> w:
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         cp('[INFO] Linux detected, enabling "--no-sandbox" and "--disable-dev-shm-usage".', "purple")
-    b: WebDriver = w.Edge('C:\\Utility\\msedgedriver.exe', options=options)
+    webdriver_path = json['config']['webdriver location']
+    if webdriver_path.endswith(".exe"):
+        b = w.Edge(executable_path=webdriver_path, options=options)
+    else:
+        cp('[WARNING] The specified webdriver path in credentials.json is invalid, M$ Rewards has automatically reverted to the automatic edge driver manager. This could cause issues for users without Administrator. However if you recieve no errors, you are free to run this configuration, otherwise read further. Keep in mind, the full path should be entered, eg. "C://Webdrivers/msedgedriver.exe". If you are unsure what this means, follow the following steps:'
+           '1. Go to C: in file explorer'
+           '2. Create a folder called "Utility" (this does not require administrator)'
+           '3. Download the latest msedgedriver at https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/ and place the file in C://Utility'
+           '4. Open credentials.json and paste in "C://Webdrivers/msedgedriver.exe"', "yellow")
+        b = w.Edge(service=Service(EdgeChromiumDriverManager().install()), options=options)
+
     return b
 
 
@@ -213,7 +222,7 @@ def check_points(b: w, userid: int, prettyprint: bool = True) -> int:
         if goal_price <= points:
             cp(f"[VERY GOOD INFO] {gd(userid)} has enough points to redeem {dd[rg]['title']}!", "green")
         else:
-            cp(f"[INFO] {gd(userid)} is {str(round(points / goal_price, 1))}% of the way to redeeming (a) {dd[rg]['title']}!",
+            cp(f"[INFO] {gd(userid)} is {points / goal_price}% of the way to redeeming (a) {dd[rg]['title']}!",
                "purple")
     return int(points)
 
@@ -903,6 +912,15 @@ def main(u: int = 0):
         wait(20)
 
         try:
+            check_points(b, u)
+        except Exception as e:
+            error(e)
+            try:
+                check_points(b, u)
+            except Exception as e:
+                error(e)
+
+        try:
             logout(u, b)
         except Exception as e:
             error(e)
@@ -923,14 +941,12 @@ def main(u: int = 0):
                 error(e)
         cp(f"[SUCCESS] {gd(u)} has completed it's daily Microsoft Reward tasks.", "green")
 
-    mobile()
     desktop()
+    mobile()
 
 
 if __name__ == '__main__':
     logo()
-    # log(initialize=True)
-    # log("tacos")
     for mainuserid in range(0, accounts):
         if tacos == "yes":
             main(mainuserid)
