@@ -17,8 +17,8 @@ pip install -r requirements.txt
 ```
 If you have administrator you can skip to **Configuration** running the file, however if you don't, you want to download the latest edge driver [here][https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/]. Place this file where ever you want, but make sure to copy the file path. In credentials.json change "webdriver location" to the webdriver's location, eg. the example webdriver location is stored in "C://Utility//msedgedriver.exe". 
 ```
-    "webdriver location": "C://Utility//msedgedriver.exe"
-  ```
+"webdriver location": "C://Utility//msedgedriver.exe"
+```
 ## Configuration
 BEFORE READING ON FURTHER MAKE SURE THE FIRST NAME ON YOUR MICROSOFT ACCOUNT IS IN YOUR EMAIL EG. Sarah and sarahjones@gmail.com, Harry and harrylarry@outlook.com, or Tacos and tacosaretasty@tacos.com. The ONLY exception to this rule is if your microsoft account does not have a first name and just shows its email, eg. email@email.com = email@email.com.
 To add add/change microsoft acccounts, open "credentials.json", and change the file accordingly. Keep in mind, the more accounts you run, the higher chance you get detected as a bot, many people recommend to have a maximum of 2-3 accounts running. For example:
