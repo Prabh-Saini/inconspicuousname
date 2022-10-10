@@ -1,7 +1,9 @@
+import argparse
 import urllib.parse
 from datetime import datetime
 from inspect import currentframe
 from json import load, loads
+from math import ceil as c
 from platform import system as psys
 from random import randint
 from sys import exit
@@ -12,12 +14,10 @@ from selenium import webdriver as w
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.edge.options import Options
+from selenium.webdriver.edge.service import Service
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait as WDWait
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
-from selenium.webdriver.edge.service import Service
-import argparse
-from math import ceil as c
 
 q = \
     "███╗   ███╗▄▄███▄▄·    ██████╗ ███████╗██╗    ██╗ █████╗ ██████╗ ██████╗ ███████╗" \
@@ -30,7 +30,7 @@ q = \
 ############
 #  CONFIG  #
 ############
-version_number = "0.9.3.1 BETA"
+version = "0.9.4 BETA"
 options = Options()
 json = load(open('credentials.json'))
 credentials = []
@@ -39,18 +39,24 @@ cf = currentframe()
 accounts = json['config']['How many accounts are you using?']
 tacos = json['config']['Do you like tacos?']
 log_name = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
-log_status = False
 email = (By.ID, "i0116")
 password = (By.ID, "i0118")
 next_button = (By.ID, "idSIButton9")
-uuid = 0
 parser = argparse.ArgumentParser(description='M$ Rewards')
-parser.add_argument('--delay', dest='delay', default=False, action='store_true', help='Delay, reccomended if you are running the script at the same time every day. Delay will randomly run the script 1-30 minutes later than normal.')
-parser.add_argument('--logs', dest='logs', default=False, action='store_true', help='Logs, reccomended if you would like to keep a record of the bot to make sure it has been working daily.')
-parser.add_argument('--calculatetime', dest='calculatetime', default=False, action='store_true', help='M$ Calculator is a way to calculate how long it will take to purchase an item using M$ Rewards. To use M$ Calculator, you want to change credentials json according to README.md')
+parser.add_argument('--delay', dest='delay', default=False, action='store_true',
+                    help='Delay, reccomended if you are running the script at the same time every day. Delay will randomly run the script 1-30 minutes later than normal.')
+parser.add_argument('--logs', dest='logs', default=False, action='store_true',
+                    help='Logs, reccomended if you would like to keep a record of the bot to make sure it has been working daily.')
+parser.add_argument('--calculatetime', dest='calculatetime', default=False, action='store_true',
+                    help='M$ Calculator is a way to calculate how long it will take to purchase an item using M$ Rewards. To use M$ Calculator, you want to change credentials json according to README.md')
 args = parser.parse_args()
-if args.logs:
-    log_status = True
+log = {"time": "",
+       "version": "",
+       "account_balance": [0, 0],
+       "delay": False,
+       "errors": [],
+       "warnings": [],
+       }
 for i in json['credentials']:
     credentials.append(i)
 
@@ -59,8 +65,14 @@ for i in json['credentials']:
 #  Functions  #
 ###############
 def create_b_instance(mobile_instance: Literal[True, False], userid: int) -> w:
-    desktop = ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36 Edg/105.0.1343.53', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36 Edg/106.0.1370.34', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36 Edg/106.0.1370.34']
-    mobile = ['Mozilla/5.0 (iPhone; CPU iPhone OS 12_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.1 EdgiOS/44.5.0.10 Mobile/15E148 Safari/604.1', 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 EdgiOS/100.1185.50 Mobile/15E148 Safari/605.1.15', 'Mozilla/5.0 (Linux; Android 10; Pixel 3 XL) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.5249.79 Mobile Safari/537.36 EdgA/100.0.1185.50']
+    desktop = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36 Edg/105.0.1343.53',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36 Edg/106.0.1370.34',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36 Edg/106.0.1370.34']
+    mobile = [
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 12_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.1 EdgiOS/44.5.0.10 Mobile/15E148 Safari/604.1',
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 EdgiOS/100.1185.50 Mobile/15E148 Safari/605.1.15',
+        'Mozilla/5.0 (Linux; Android 10; Pixel 3 XL) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.5249.79 Mobile Safari/537.36 EdgA/100.0.1185.50']
 
     if mobile_instance:
         options.add_argument(f"user-agent={mobile[userid]}")
@@ -88,19 +100,18 @@ def create_b_instance(mobile_instance: Literal[True, False], userid: int) -> w:
     if webdriver_path.endswith(".exe"):
         b = w.Edge(executable_path=webdriver_path, options=options)
     else:
-        cp('[WARNING] The specified webdriver path in credentials.json is invalid. If M$ Rewards is still working you can avoid this warning, otherwise follow the steps below.'
-           '1. Go to C: in file explorer'
-           '2. Create a folder called "Utility" (this does not require administrator)'
-           '3. Download the latest msedgedriver at https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/ and place the file in C://Utility'
-           '4. Open credentials.json and paste in "C://Webdrivers/msedgedriver.exe"', "yellow")
+        Warning(
+            'The specified webdriver path in credentials.json is invalid. If M$ Rewards is still working you can avoid this warning, otherwise follow the steps below.'
+            '1. Go to C: in file explorer'
+            '2. Create a folder called "Utility" (this does not require administrator)'
+            '3. Download the latest msedgedriver at https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/ and place the file in C://Utility'
+            '4. Open credentials.json and paste in "C://Webdrivers/msedgedriver.exe"', False)
         b = w.Edge(service=Service(EdgeChromiumDriverManager().install()), options=options)
 
     return b
 
 
 def login(userid: int, b: w):
-    global uuid
-    uuid = userid
     b.get('https://login.live.com/')
     cp(f"Attempting to log in to {gd(userid)}.", "yellow")
     wait(1)
@@ -115,7 +126,8 @@ def login(userid: int, b: w):
     if b.title == "We're updating our terms" or element_exist(By.ID, 'iAccrualForm', b=b):
         WDWait(b, 100).until(ec.element_to_be_clickable((By.ID, 'iNext'))).click()
     if b.title == "Your account has been temporarily suspended" or element_exist(By.CLASS_NAME,
-                                                                                 "serviceAbusePageContainer  PageContainer", b=b):
+                                                                                 "serviceAbusePageContainer  PageContainer",
+                                                                                 b=b):
         error("Account Suspended", line_number=False, finish_process=True)
     if b.title == "Help us protect your account":
         error("Account Locked", line_number=False, finish_process=True)
@@ -131,13 +143,13 @@ def logout(userid: int, b: w):
     wait(randint(15, 20))
 
 
-def search(searches: int, b: w):
+def search(searches: int, b: w, userid: int):
     sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000").text.splitlines()  # sa = search array
     try:
         for abcdefghijklmnopqrstuvwxyz in range(1, randint(searches + 1, searches + 10) + 1):
             d = randint(0, len(sa) - 1)
             b.execute_script(f'window.location.href = "https://bing.com/?q={sa[d]}";')  # haha sad
-            sign_in(b)
+            sign_in(b, userid)
             sa.pop(d)
             wait(randint(4, 7))
     except Exception as e:
@@ -145,7 +157,7 @@ def search(searches: int, b: w):
         try:
             d = randint(0, len(sa) - 1)
             b.execute_script(f'window.location.href = "https://bing.com/?q={sa[d]}";')  # haha sad v2
-            sign_in(b)
+            sign_in(b, userid)
             sa.pop(d)
             wait(randint(4, 11))
         except Exception as e:
@@ -169,12 +181,15 @@ def cp(text: str, colour: Literal["red", "green", "yellow", "blue", "purple"], w
         return
 
 
-def error(text, current_time: bool = True, line_number: bool = True, finish_process: bool = False, exit_code: int = 0):
+def error(text, current_time: bool = True, line_number: bool = True, finish_process: bool = False, exit_code: int = 0, log_error: bool = True):
     result = f'Error: {text}'
     if line_number:
         result += f"\n  -> Line Number: {cf}"
     if current_time:
         result += f"\n  -> Current Time: {datetime.now().strftime('%H:%M:%S')}"
+    cp(result, "red")
+    if log_error:
+        log["errors"] += result
     if finish_process:
         input('Press any key to close...')
         exit(exit_code)
@@ -189,25 +204,10 @@ def element_exist(_by: By, element: str, b: w) -> bool:
     return True
 
 
-# def log(logs: str = "n/a", initialize: bool = False) -> None:
-#     if initialize:
-#         try:
-#             with open(f'logs/{log_name}', 'w') as f:
-#                 f.write('[Initialize] Logs initialized.\n')
-#         except FileNotFoundError:
-#             error("Unable to write logs. M$ Rewards will continue to run, however no information will be recorded."
-#                   "If you would like to exit now, please CTRL+C in the next five seconds.")
-#             wait(5)
-#     else:z
-#         if log_status:
-#             try:
-#                 f = open("logs/{log_name}", "a")
-#                 f.write(f'[{datetime.now().strftime("%H:%M:%S")}] {logs}')
-#                 f.close()
-#             except Exception as e:
-#                 error(f'Logs failed to update. ({e})', line_number=True)
-#         else:
-#             cp("[WARNING] Logs failed to update.", "yellow")
+def warn(text: str, log_warn: bool = True):
+    cp(f"[WARNING] {text}", "yellow")
+    if log_warn:
+        log["warnings"] += text
 
 
 def gd(uid: int, opt: Literal["username", "password"] = "username") -> str:  # gd = get details :)
@@ -243,11 +243,13 @@ def check_points(b: w, userid: int, prettyprint: bool = True) -> int:
 def logo():
     cp("███╗   ███╗▄▄███▄▄·    ██████╗ ███████╗██╗    ██╗ █████╗ ██████╗ ██████╗ ███████╗\n████╗ ████║██╔════╝    ██╔══██╗██╔════╝██║    ██║██╔══██╗██╔══██╗██╔══██╗██╔════╝\n██╔████╔██║███████╗    ██████╔╝█████╗  ██║ █╗ ██║███████║██████╔╝██║  ██║███████╗\n██║╚██╔╝██║╚════██║    ██╔══██╗██╔══╝  ██║███╗██║██╔══██║██╔══██╗██║  ██║╚════██║\n██║ ╚═╝ ██║███████║    ██║  ██║███████╗╚███╔███╔╝██║  ██║██║  ██║██████╔╝███████║\n╚═╝     ╚═╝╚═▀▀▀══╝    ╚═╝  ╚═╝╚══════╝ ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝",
        "green")
-    cp(f"By @Opensourceisgod on Github. V{version_number}", "blue")
+    cp(f"By @Opensourceisgod on Github. V{version}", "blue")
     print("Legend: \033[91m[ERROR] \033[92m[SUCCESS] \033[93m[ATTEMPT] \033[95m[INFO]\n\n")
+    log["time"] = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
+    log["version"] = version
 
 
-def complete_daily_set(b: w):
+def complete_daily_set(b: w, userid: int):
     d = dashboard_data(b=b)['dailySetPromotions']
     todaydate, todaypack = datetime.today().strftime('%m/%d/%Y'), []
     for datedate, data in d.items():
@@ -258,15 +260,15 @@ def complete_daily_set(b: w):
             card_number: int = int(activity['offerId'][-1:])
             if activity['promotionType'] == "urlreward":
                 cp(f'[INFO] Completing daily set {str(card_number)} (search)', "purple")
-                daily_set_search(card_number, b)
+                daily_set_search(card_number, b, userid=userid)
             if activity['promotionType'] == "quiz":
                 if activity['pointProgressMax'] == 50 and activity['pointProgress'] == 0:
                     cp(f'[INFO] Completing daily set {str(card_number)} (this or that)', "purple")
-                    daily_set_this_or_that(card_number, b)
+                    daily_set_this_or_that(card_number, b, userid)
                 elif (activity['pointProgressMax'] == 40 or activity['pointProgressMax'] == 30) and activity[
                     'pointProgress'] == 0:
                     cp(f'[INFO] Completing daily set {str(card_number)} (quiz)', "purple")
-                    daily_set_quiz(card_number, b=b)
+                    daily_set_quiz(card_number, b=b, userid=userid)
                 elif activity['pointProgressMax'] == 10 and activity['pointProgress'] == 0:
                     search_url = urllib.parse.unquote(
                         urllib.parse.parse_qs(urllib.parse.urlparse(activity['destinationUrl']).query)['ru'][0])
@@ -277,19 +279,19 @@ def complete_daily_set(b: w):
                         filters[f[0]] = f[1]
                     if "PollScenarioId" in filters:
                         cp(f'[INFO] Completing daily set {str(card_number)} (poll)', "purple")
-                        daily_set_survey(card_number, b=b)
+                        daily_set_survey(card_number, b=b, userid=userid)
                     else:
                         cp(f'[INFO] Completing daily set {str(card_number)} (quiz)', "purple")
-                        daily_set_variable_activity(card_number, b=b)
+                        daily_set_variable_activity(card_number, b=b, userid=userid)
 
 
-def daily_set_search(card_number: int, b: w):
+def daily_set_search(card_number: int, b: w, userid: int):
     wait(5)
     b.find_element(By.XPATH,
                    f'//*[@id="app-host"]/ui-view/mee-rewards-dashboard/main/div/mee-rewards-daily-set-section/div/mee-card-group/div/mee-card[{str(card_number)}]/div/card-content/mee-rewards-daily-set-item-content/div/a/div/span').click()
     wait(1)
     b.switch_to.window(window_name=b.window_handles[1])
-    sign_in(b)
+    sign_in(b, userid)
     wait(4)
     b.close()
     wait(2)
@@ -297,13 +299,14 @@ def daily_set_search(card_number: int, b: w):
     wait(2)
 
 
-def daily_set_survey(card_number: int, b: w):
+def daily_set_survey(card_number: int, b: w, userid: int):
     wait(5)
-    b.find_element(By.XPATH, f'//*[@id="app-host"]/ui-view/mee-rewards-dashboard/main/div/mee-rewards-daily-set-section/div/mee-card-group/div/mee-card[{str(card_number)}]/div/card-content/mee-rewards-daily-set-item-content/div/a/div/span').click()
+    b.find_element(By.XPATH,
+                   f'//*[@id="app-host"]/ui-view/mee-rewards-dashboard/main/div/mee-rewards-daily-set-section/div/mee-card-group/div/mee-card[{str(card_number)}]/div/card-content/mee-rewards-daily-set-item-content/div/a/div/span').click()
     wait(1)
     b.switch_to.window(window_name=b.window_handles[1])
     wait(8)
-    sign_in(b)
+    sign_in(b, userid)
     wait(4)
     # Accept cookie popup
     if element_exist(By.ID, 'bnp_container', b=b):
@@ -321,13 +324,13 @@ def daily_set_survey(card_number: int, b: w):
     wait(2)
 
 
-def daily_set_quiz(card_number: int, b: w):
+def daily_set_quiz(card_number: int, b: w, userid: int):
     wait(5)
     b.find_element(By.XPATH,
                    f'//*[@id="app-host"]/ui-view/mee-rewards-dashboard/main/div/mee-rewards-daily-set-section[1]/div/mee-card-group[1]/div[1]/mee-card[{str(card_number)}]/div[1]/card-content[1]/mee-rewards-daily-set-item-content[1]/div[1]/a[1]/div[3]/span[1]').click()
     wait(3)
     b.switch_to.window(window_name=b.window_handles[1])
-    sign_in(b)
+    sign_in(b, userid)
     wait(12)
     if not wait_until_q_loads(b=b):
         cu = b.current_window_handle
@@ -389,12 +392,13 @@ def daily_set_quiz(card_number: int, b: w):
     wait(2)
 
 
-def daily_set_variable_activity(card_number: int, b: w):
+def daily_set_variable_activity(card_number: int, b: w, userid: int):
     wait(2)
-    b.find_element(By.XPATH, f'//*[@id="app-host"]/ui-view/mee-rewards-dashboard/main/div/mee-rewards-daily-set-section/div/mee-card-group/div/mee-card[{str(card_number)}]/div/card-content/mee-rewards-daily-set-item-content/div/a/div/span').click()
+    b.find_element(By.XPATH,
+                   f'//*[@id="app-host"]/ui-view/mee-rewards-dashboard/main/div/mee-rewards-daily-set-section/div/mee-card-group/div/mee-card[{str(card_number)}]/div/card-content/mee-rewards-daily-set-item-content/div/a/div/span').click()
     wait(1)
     b.switch_to.window(window_name=b.window_handles[1])
-    sign_in(b)
+    sign_in(b, userid)
     wait(8)
     # Accept cookie popup
     if element_exist(By.ID, 'bnp_container', b=b):
@@ -444,13 +448,13 @@ def daily_set_variable_activity(card_number: int, b: w):
     wait(2)
 
 
-def daily_set_this_or_that(card_number: int, b: w):
+def daily_set_this_or_that(card_number: int, b: w, userid: int):
     wait(2)
     b.find_element(By.XPATH,
                    f'//*[@id="app-host"]/ui-view/mee-rewards-dashboard/main/div/mee-rewards-daily-set-section/div/mee-card-group/div/mee-card[{str(card_number)}]/div/card-content/mee-rewards-daily-set-item-content/div/a/div/span').click()
     wait(1)
     b.switch_to.window(window_name=b.window_handles[1])
-    sign_in(b)
+    sign_in(b, userid)
     wait(15)
     # Accept cookie popup
     if element_exist(By.ID, 'bnp_container', b=b):
@@ -755,7 +759,7 @@ def complete_more_promotions(b: w):
             complete_more_promotion_search(itera, b=b)
 
 
-def sign_in(b: w) -> None:
+def sign_in(b: w, userid: int) -> None:
     """for those stupid times when it doesn't register you signing in"""
     if str(b.current_url).split('?')[0] == "https://www.bing.com/rewards/signin":
         # b.findElement(By.xpath("//a[@href='/docs/configuration']")).click();
@@ -763,7 +767,7 @@ def sign_in(b: w) -> None:
         cp("[INFO] Re-signed in, due to a bug in Microsoft Rewards.", "purple")
         wait(1)
     if str(b.current_url).split('?')[0] == "https://login.live.com/login.srf":
-        WDWait(b, 100).until(ec.element_to_be_clickable(password)).send_keys(gd(uuid, "password"))
+        WDWait(b, 100).until(ec.element_to_be_clickable(password)).send_keys(gd(userid, "password"))
         WDWait(b, 100).until(ec.element_to_be_clickable(next_button)).click()
 
 
@@ -781,7 +785,8 @@ def mobile_sign_in(userid: int, b: w):
         wait(0.5)
         WDWait(b, 100).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="hb_idproviders"]/a'))).click()
         wait(4)
-        cp('[INFO] Bing did not automatically connect to your specified M$ Rewards account, it has automatically been resolved now.', "purple")
+        cp('[INFO] Bing did not automatically connect to your specified M$ Rewards account, it has automatically been resolved now.',
+           "purple")
 
 
 def another_stupid_sign_in(userid: int, b: w):
@@ -810,7 +815,8 @@ def calculate(microsoft_gift_card: bool, purchase_cost: int, acc: int, daily_poi
             needed_points_per_account += needed_gift_cards * 6750
         estimated_time = c(needed_points_per_account / daily_points)
         excess_value = purchase_cost - (needed_gift_cards * 5)
-        print(f'It will take {estimated_time} days to get {needed_gift_cards} $5 gift cards to purchase your item that costs ${purchase_cost}, therefore an excess giftcard value of ${excess_value}')
+        print(
+            f'It will take {estimated_time} days to get {needed_gift_cards} $5 gift cards to purchase your item that costs ${purchase_cost}, therefore an excess giftcard value of ${excess_value}')
     elif acc >= 2:
         gift_cards_needed_per_account = c(needed_gift_cards / acc)
         if microsoft_gift_card == "yes":
@@ -819,7 +825,16 @@ def calculate(microsoft_gift_card: bool, purchase_cost: int, acc: int, daily_poi
             needed_points_per_account += gift_cards_needed_per_account * 6750
         estimated_time = c(needed_points_per_account / daily_points)
         excess_value = (gift_cards_needed_per_account * 5 * acc) - purchase_cost
-        cp(f'It will take {estimated_time} days to get {gift_cards_needed_per_account} $5 gift cards on each {acc} accounts, to purchase your item that costs ${purchase_cost}, therefore an excess giftcard value of ${excess_value}', "green")
+        cp(f'It will take {estimated_time} days to get {gift_cards_needed_per_account} $5 gift cards on each {acc} accounts, to purchase your item that costs ${purchase_cost}, therefore an excess giftcard value of ${excess_value}',
+           "green")
+
+
+def write_json(new_data, filename='logs/logs.json'):
+    with open(filename, 'r+') as file:
+        file_data = json.load(file)
+        file_data["logs"].append(new_data)
+        file.seek(0)
+        json.dump(file_data, file, indent=4)
 
 
 #######################
@@ -854,20 +869,20 @@ def main(u: int = 0):
         wait(30)
 
         try:
-            check_points(b, u)
+            log["account_balance"][0] += check_points(b, u)
         except Exception as e:
             error(e)
             try:
-                check_points(b, u)
+                log["account_balance"][0] += check_points(b, u)
             except Exception as e:
                 error(e)
 
         try:
-            complete_daily_set(b)
+            complete_daily_set(b, u)
         except Exception as e:
             error(e)
             try:
-                complete_daily_set(b)
+                complete_daily_set(b, u)
             except Exception as e:
                 error(e)
 
@@ -894,15 +909,15 @@ def main(u: int = 0):
                 error(e)
 
         wait(60)
-        search(34, b)
+        search(34, b, u)
         wait(20)
 
         try:
-            check_points(b, u)
+            log["account_balance"][1] += check_points(b, u)
         except Exception as e:
             error(e)
             try:
-                check_points(b, u)
+                log["account_balance"][1] += check_points(b, u)
             except Exception as e:
                 error(e)
 
@@ -952,7 +967,7 @@ def main(u: int = 0):
                 error(e)
 
         wait(5)
-        search(30, b)
+        search(30, b, u)
         wait(20)
 
         try:
@@ -988,12 +1003,18 @@ if __name__ == '__main__':
               finish_process=True)
 
     if args.delay:
+        log['delay'] = True
         delay = randint(1, 30)
         cp(f"[INFO] Delay Enabled (Delayed for {delay} minutes.)", "purple")
         wait(delay)
-
+    
     if args.calculatetime:
-        calculate(microsoft_gift_card=load(open('credentials.json'))['calculate time config']['redeem_microsoft_gift_card?'], purchase_cost=load(open('credentials.json'))['calculate time config']["how much does it cost to buy your item in $"], acc=load(open('credentials.json'))['config']['How many accounts are you using?'], daily_points=230)
+        calculate(
+            microsoft_gift_card=load(open('credentials.json'))['calculate time config']['redeem_microsoft_gift_card?'],
+            purchase_cost=load(open('credentials.json'))['calculate time config']["how much does it cost to buy your item in $"],
+            acc=load(open('credentials.json'))['config']['How many accounts are you using?'], daily_points=230)
     else:
         for mainuserid in range(0, accounts):
             main(mainuserid)
+        if args.log:
+            write_json(log)
