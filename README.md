@@ -1,5 +1,7 @@
 # M$ Rewards
 A selenium-python program that literally makes you money! 
+## Responsibility
+I am not responsible for your account(s). This program is a use at your own risk, Microsoft holds the right to lock, or ban your account.
 ## Features
 M$ Rewards has many features including:
 * Automatic Mobile search
@@ -61,5 +63,5 @@ It will return an result that should look something like this:
 ``` 
 It will take 206 days to get 7 $5 gift cards on each 3 accounts, to purchase your item that costs $100, therefore an excess giftcard value of $5
 ```
-## Responsibility
-I am not responsible for your account(s). This program is a use at your own risk, Microsoft holds the right to lock, or ban your account.
+## Credit
+Credit to @charlesbel for originally coming up and developing the idea!
