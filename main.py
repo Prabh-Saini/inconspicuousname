@@ -16,6 +16,8 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait as WDWait
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from selenium.webdriver.edge.service import Service
+import argparse
+from math import ceil as c
 
 q = \
     "███╗   ███╗▄▄███▄▄·    ██████╗ ███████╗██╗    ██╗ █████╗ ██████╗ ██████╗ ███████╗" \
@@ -28,7 +30,7 @@ q = \
 ############
 #  CONFIG  #
 ############
-version_number = "0.9.3 BETA"
+version_number = "0.9.3.1 BETA"
 options = Options()
 json = load(open('credentials.json'))
 credentials = []
@@ -37,11 +39,18 @@ cf = currentframe()
 accounts = json['config']['How many accounts are you using?']
 tacos = json['config']['Do you like tacos?']
 log_name = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
-log_status = True
+log_status = False
 email = (By.ID, "i0116")
 password = (By.ID, "i0118")
 next_button = (By.ID, "idSIButton9")
 uuid = 0
+parser = argparse.ArgumentParser(description='M$ Rewards')
+parser.add_argument('--delay', dest='delay', default=False, action='store_true', help='Delay, reccomended if you are running the script at the same time every day. Delay will randomly run the script 1-30 minutes later than normal.')
+parser.add_argument('--logs', dest='logs', default=False, action='store_true', help='Logs, reccomended if you would like to keep a record of the bot to make sure it has been working daily.')
+parser.add_argument('--calculatetime', dest='calculatetime', default=False, action='store_true', help='M$ Calculator is a way to calculate how long it will take to purchase an item using M$ Rewards. To use M$ Calculator, you want to change credentials json according to README.md')
+args = parser.parse_args()
+if args.logs:
+    log_status = True
 for i in json['credentials']:
     credentials.append(i)
 
@@ -49,13 +58,15 @@ for i in json['credentials']:
 ###############
 #  Functions  #
 ###############
-def create_b_instance(mobile_instance: Literal[True, False]) -> w:
-    desktop = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36 Edg/105.0.1343.53'
-    mobile = 'Mozilla/5.0 (iPhone; CPU iPhone OS 12_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.1 EdgiOS/44.5.0.10 Mobile/15E148 Safari/604.1'
+def create_b_instance(mobile_instance: Literal[True, False], userid: int) -> w:
+    desktop = ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36 Edg/105.0.1343.53', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36 Edg/106.0.1370.34', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36 Edg/106.0.1370.34']
+    mobile = ['Mozilla/5.0 (iPhone; CPU iPhone OS 12_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.1 EdgiOS/44.5.0.10 Mobile/15E148 Safari/604.1', 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 EdgiOS/100.1185.50 Mobile/15E148 Safari/605.1.15', 'Mozilla/5.0 (Linux; Android 10; Pixel 3 XL) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.5249.79 Mobile Safari/537.36 EdgA/100.0.1185.50']
+
     if mobile_instance:
-        options.add_argument(f"user-agent={mobile}")
+        options.add_argument(f"user-agent={mobile[userid]}")
     else:
-        options.add_argument(f"user-agent={desktop}")
+        options.add_argument(f"user-agent={desktop[userid]}")
+
     options.add_argument('lang=en-AU')
     options.add_argument('--disable-blink-features=AutomationControlled')
     preference = {"profile.default_content_setting_values.geolocation": 2,
@@ -71,11 +82,13 @@ def create_b_instance(mobile_instance: Literal[True, False]) -> w:
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         cp('[INFO] Linux detected, enabling "--no-sandbox" and "--disable-dev-shm-usage".', "purple")
+
     webdriver_path = json['config']['webdriver location']
+
     if webdriver_path.endswith(".exe"):
         b = w.Edge(executable_path=webdriver_path, options=options)
     else:
-        cp('[WARNING] The specified webdriver path in credentials.json is invalid, M$ Rewards has automatically reverted to the automatic edge driver manager. This could cause issues for users without Administrator. However if you recieve no errors, you are free to run this configuration, otherwise read further. Keep in mind, the full path should be entered, eg. "C://Webdrivers/msedgedriver.exe". If you are unsure what this means, follow the following steps:'
+        cp('[WARNING] The specified webdriver path in credentials.json is invalid. If M$ Rewards is still working you can avoid this warning, otherwise follow the steps below.'
            '1. Go to C: in file explorer'
            '2. Create a folder called "Utility" (this does not require administrator)'
            '3. Download the latest msedgedriver at https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/ and place the file in C://Utility'
@@ -185,7 +198,7 @@ def element_exist(_by: By, element: str, b: w) -> bool:
 #             error("Unable to write logs. M$ Rewards will continue to run, however no information will be recorded."
 #                   "If you would like to exit now, please CTRL+C in the next five seconds.")
 #             wait(5)
-#     else:
+#     else:z
 #         if log_status:
 #             try:
 #                 f = open("logs/{log_name}", "a")
@@ -787,62 +800,35 @@ def another_stupid_sign_in(userid: int, b: w):
            "purple")
 
 
+def calculate(microsoft_gift_card: bool, purchase_cost: int, acc: int, daily_points: int):
+    needed_gift_cards = c(purchase_cost / 5)
+    needed_points_per_account = 0
+    if acc == 1:
+        if microsoft_gift_card == "yes":
+            needed_points_per_account += needed_gift_cards * 4750
+        else:
+            needed_points_per_account += needed_gift_cards * 6750
+        estimated_time = c(needed_points_per_account / daily_points)
+        excess_value = purchase_cost - (needed_gift_cards * 5)
+        print(f'It will take {estimated_time} days to get {needed_gift_cards} $5 gift cards to purchase your item that costs ${purchase_cost}, therefore an excess giftcard value of ${excess_value}')
+    elif acc >= 2:
+        gift_cards_needed_per_account = c(needed_gift_cards / acc)
+        if microsoft_gift_card == "yes":
+            needed_points_per_account += gift_cards_needed_per_account * 4750
+        else:
+            needed_points_per_account += gift_cards_needed_per_account * 6750
+        estimated_time = c(needed_points_per_account / daily_points)
+        excess_value = (gift_cards_needed_per_account * 5 * acc) - purchase_cost
+        cp(f'It will take {estimated_time} days to get {gift_cards_needed_per_account} $5 gift cards on each {acc} accounts, to purchase your item that costs ${purchase_cost}, therefore an excess giftcard value of ${excess_value}', "green")
+
+
 #######################
 #  HOPE FOR THE BEST  #
 #######################
 def main(u: int = 0):
-    # Mobile search - first in case something fails on desktop search
-    def mobile():
-        b = create_b_instance(mobile_instance=True)
-
-        try:
-            login(u, b)
-        except Exception as e:
-            error(e)
-            try:
-                login(u, b)
-            except Exception as e:
-                error(e)
-
-        wait(5)
-
-        try:
-            mobile_sign_in(u, b)
-        except Exception as e:
-            error(e)
-            try:
-                mobile_sign_in(u, b)
-            except Exception as e:
-                error(e)
-
-        wait(5)
-        search(30, b)
-        wait(20)
-
-        try:
-            logout(u, b)
-        except Exception as e:
-            error(e)
-            try:
-                logout(u, b)
-            except Exception as e:
-                error(e)
-
-        wait(2)
-        try:
-            b.close()
-        except Exception as e:
-            error(e)
-            try:
-                b.close()
-            except Exception as e:
-                error(e)
-
-        wait(5)
-
     # Desktop search
     def desktop():
-        b = create_b_instance(mobile_instance=False)
+        b = create_b_instance(mobile_instance=False, userid=u)
 
         try:
             login(u, b)
@@ -941,14 +927,73 @@ def main(u: int = 0):
                 error(e)
         cp(f"[SUCCESS] {gd(u)} has completed it's daily Microsoft Reward tasks.", "green")
 
+    # Mobile search
+    def mobile():
+        b = create_b_instance(mobile_instance=True, userid=u)
+
+        try:
+            login(u, b)
+        except Exception as e:
+            error(e)
+            try:
+                login(u, b)
+            except Exception as e:
+                error(e)
+
+        wait(5)
+
+        try:
+            mobile_sign_in(u, b)
+        except Exception as e:
+            error(e)
+            try:
+                mobile_sign_in(u, b)
+            except Exception as e:
+                error(e)
+
+        wait(5)
+        search(30, b)
+        wait(20)
+
+        try:
+            logout(u, b)
+        except Exception as e:
+            error(e)
+            try:
+                logout(u, b)
+            except Exception as e:
+                error(e)
+
+        wait(2)
+        try:
+            b.close()
+        except Exception as e:
+            error(e)
+            try:
+                b.close()
+            except Exception as e:
+                error(e)
+
+        wait(5)
+
     desktop()
     mobile()
 
 
 if __name__ == '__main__':
     logo()
-    for mainuserid in range(0, accounts):
-        if tacos == "yes":
+
+    if tacos != "yes":
+        error("You do not like tacos. Script will not run until you fix your opinion in credentials.json",
+              finish_process=True)
+
+    if args.delay:
+        delay = randint(1, 30)
+        cp(f"[INFO] Delay Enabled (Delayed for {delay} minutes.)", "purple")
+        wait(delay)
+
+    if args.calculatetime:
+        calculate(microsoft_gift_card=load(open('credentials.json'))['calculate time config']['redeem_microsoft_gift_card?'], purchase_cost=load(open('credentials.json'))['calculate time config']["how much does it cost to buy your item in $"], acc=load(open('credentials.json'))['config']['How many accounts are you using?'], daily_points=230)
+    else:
+        for mainuserid in range(0, accounts):
             main(mainuserid)
-        else:
-            error("You do not like tacos. Script will not run until you fix your opinion in credentials.json", finish_process=True)
