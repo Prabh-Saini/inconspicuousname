@@ -40,7 +40,11 @@ To run the file download Python **3.10** and run the following command. Note: M$
 ```
 python main.py
 ```
-This process can be streamlined on windows by downloading python, right clicking "main.py", clicking "open with", and click python. (Make sure to click "always use this app to open .py files")
+You can use flags such as --delay which will delay the script from running by 1 to 30 minutes (good for users who are running this in task scheduler), or --logs which will activate logging to a log file (once again good for automaters), and --calculatetime which will not run the script but rather use the M$ Calculator, read below to find out more.
+```
+python main.py --delay --logs
+```
+This process can be streamlined on windows by downloading python, right clicking "main.py", clicking "open with", and click python. (Make sure to click "always use this app to open .py files") However you will still need terminal to use --delay, --logs, and --calculatetime
 ## M$ Calculator
 M$ Calculator is a way to calculate how long it will take to purchase an item using M$ Rewards. To use M$ Calculator, you want to change credentials json to:
 ```
@@ -49,11 +53,13 @@ M$ Calculator is a way to calculate how long it will take to purchase an item us
     "how much does it cost to buy your item in $": 100
   }
 ```
-The first option you must answer is "redeem_microsoft_gift_card?", which basically means, can the product you want to buy be bought on the Microsoft or Xbox store? If so, type in "yes", if not enter in "no". The second option is "how much does it cost to buy your item in ", which self explaintory-ly asks how expensive is the product you wish to purchase. To run M$ Calculator, use the command down below (Note if you enabled: "always use this app to open .py files", you can simply just double click "calculate_time.py")
+The first option you must answer is "redeem_microsoft_gift_card?", which basically means, can the product you want to buy be bought on the Microsoft or Xbox store? If so, type in "yes", if not enter in "no". The second option is "how much does it cost to buy your item in ", which self explaintory-ly asks how expensive is the product you wish to purchase. To run M$ Calculator, use the command down below.
 ``` 
-python calculate_time.py
+python main.py --calculatetime
 ```
 It will return an result that should look something like this:
 ``` 
 It will take 206 days to get 7 $5 gift cards on each 3 accounts, to purchase your item that costs $100, therefore an excess giftcard value of $5
 ```
+## Responsibility
+I am not responsible for your account(s). This program is a use at your own risk, Microsoft holds the right to lock, or ban your account.
