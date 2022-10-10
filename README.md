@@ -17,7 +17,7 @@ To initally run M$ Rewards, you will need to open up command line and type in:
 ```
 pip install -r requirements.txt
 ```
-If you have administrator you can skip to **Configuration** running the file, however if you don't, you want to download the latest edge driver [here][https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/]. Place this file where ever you want, but make sure to copy the file path. In credentials.json change "webdriver location" to the webdriver's location, eg. the example webdriver location is stored in "C://Utility//msedgedriver.exe". 
+If you have administrator you can skip to **Configuration** running the file, however if you don't, you want to download the latest edge driver [here](https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/). Place this file where ever you want, but make sure to copy the file path. In credentials.json change "webdriver location" to the webdriver's location, eg. the example webdriver location is stored in "C://Utility//msedgedriver.exe". 
 ```
 "webdriver location": "C://Utility//msedgedriver.exe"
 ```
