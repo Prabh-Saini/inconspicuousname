@@ -1,3 +1,6 @@
+# Changelog
+# userconfig
+# desktop sign up used to be the 765th item in the array but that happened to be bangladesh lmaoo so now randomised
 import argparse
 import urllib.parse
 from datetime import datetime
@@ -9,7 +12,6 @@ from random import randint
 from sys import exit
 from time import sleep as wait
 from typing import Literal
-
 import requests
 from selenium import webdriver as w
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -28,27 +30,32 @@ q = \
     "██║ ╚═╝ ██║███████║    ██║  ██║███████╗╚███╔███╔╝██║  ██║██║  ██║██████╔╝███████║" \
     "╚═╝     ╚═╝╚═▀▀▀══╝    ╚═╝  ╚═╝╚══════╝ ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝"
 
-############
-#  CONFIG  #
-############
-version = "0.9.4 BETA"
-verify_request = True
+#################
+#  USER CONFIG  #
+#################
+credentials_file = 'credentials.json'  # If you downloaded the source files, no need to change this.
+
+#####################
+#  ADVANCED CONFIG  #
+#####################
+version = "0.9.5.1 BETA"
 options = Options()
-json = load(open('credentials.json'))
+json = load(open(credentials_file))
 credentials = []
 system = psys()
 cf = currentframe()
 accounts = json['config']['How many accounts are you using?']
 tacos = json['config']['Do you like tacos?']
+verify_request = json['config']['verify request']
 log_name = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
 email = (By.ID, "i0116")
 password = (By.ID, "i0118")
 next_button = (By.ID, "idSIButton9")
 parser = argparse.ArgumentParser(description='M$ Rewards')
 parser.add_argument('--delay', dest='delay', default=False, action='store_true',
-                    help='Delay, reccomended if you are running the script at the same time every day. Delay will randomly run the script 1-30 minutes later than normal.')
+                    help='Delay, recommended  if you are running the script at the same time every day. Delay will randomly run the script 1-30 minutes later than normal.')
 parser.add_argument('--logs', dest='logs', default=False, action='store_true',
-                    help='Logs, reccomended if you would like to keep a record of the bot to make sure it has been working daily.')
+                    help='Logs, recommended if you would like to keep a record of the bot to make sure it has been working daily.')
 parser.add_argument('--calculatetime', dest='calculatetime', default=False, action='store_true',
                     help='M$ Calculator is a way to calculate how long it will take to purchase an item using M$ Rewards. To use M$ Calculator, you want to change credentials json according to README.md')
 args = parser.parse_args()
@@ -58,6 +65,7 @@ log = {"time": "",
        "delay": False,
        "errors": [],
        "warnings": [],
+       "other": []
        }
 for i in json['credentials']:
     credentials.append(i)
@@ -180,11 +188,10 @@ def cp(text: str, colour: Literal["red", "green", "yellow", "blue", "purple"], w
     else:
         print(f"\033[95m{text}\033[00m")
     if write_log:
-        return
+        log["other"] += text
 
 
-def error(text, current_time: bool = True, line_number: bool = True, finish_process: bool = False, exit_code: int = 0,
-          log_error: bool = True):
+def error(text, current_time: bool = True, line_number: bool = True, finish_process: bool = False, exit_code: int = 0, log_error: bool = True):
     result = f'Error: {text}'
     if line_number:
         result += f"\n  -> Line Number: {cf}"
@@ -198,10 +205,10 @@ def error(text, current_time: bool = True, line_number: bool = True, finish_proc
         exit(exit_code)
 
 
-def element_exist(_by: By, element: str, b: w) -> bool:
+def element_exist(by: By, element: str, b: w) -> bool:
     """if element exists, return true - had to write this because i will very quickly forget wtf im doing"""
     try:
-        b.find_element(_by, element)
+        b.find_element(by, element)
     except NoSuchElementException:
         return False
     return True
@@ -794,7 +801,7 @@ def mobile_sign_in(userid: int, b: w):
 
 def another_stupid_sign_in(userid: int, b: w):
     sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000", verify=False).text.splitlines()
-    b.execute_script(f'window.location.href = "https://bing.com/?q={sa[765]}";')
+    b.execute_script(f'window.location.href = "https://bing.com/?q={sa[randint(0, 9999)]}";')
     wait(2)
     logged_in_account = b.find_element(By.ID, 'id_n').text
     if logged_in_account.lower().replace(" ", "") in gd(userid, "username"):
@@ -832,7 +839,7 @@ def calculate(microsoft_gift_card: bool, purchase_cost: int, acc: int, daily_poi
            "green")
 
 
-def write_json(new_data, filename='logs.json'):
+def write_json(new_data: dict, filename='logs.json'):
     with open(filename, 'r+') as file:
         file_data = json.load(file)
         file_data["logs"].append(new_data)
@@ -1013,10 +1020,9 @@ if __name__ == '__main__':
 
     if args.calculatetime:
         calculate(
-            microsoft_gift_card=load(open('credentials.json'))['calculate time config']['redeem_microsoft_gift_card?'],
-            purchase_cost=load(open('credentials.json'))['calculate time config'][
-                "how much does it cost to buy your item in $"],
-            acc=load(open('credentials.json'))['config']['How many accounts are you using?'],
+            microsoft_gift_card=load(open(credentials_file))['calculate time config']['redeem_microsoft_gift_card?'],
+            purchase_cost=load(open(credentials_file))['calculate time config']["how much does it cost to buy your item in $"],
+            acc=load(open(credentials_file))['config']['How many accounts are you using?'],
             daily_points=230)
     else:
         for mainuserid in range(0, accounts):
