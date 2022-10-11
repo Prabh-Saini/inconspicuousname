@@ -9,6 +9,7 @@ from random import randint
 from sys import exit
 from time import sleep as wait
 from typing import Literal
+
 import requests
 from selenium import webdriver as w
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -31,6 +32,7 @@ q = \
 #  CONFIG  #
 ############
 version = "0.9.4 BETA"
+verify_request = True
 options = Options()
 json = load(open('credentials.json'))
 credentials = []
@@ -144,7 +146,7 @@ def logout(userid: int, b: w):
 
 
 def search(searches: int, b: w, userid: int):
-    sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000").text.splitlines()  # sa = search array
+    sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000", verify=verify_request).text.splitlines()  # sa = search array
     try:
         for abcdefghijklmnopqrstuvwxyz in range(1, randint(searches + 1, searches + 10) + 1):
             d = randint(0, len(sa) - 1)
@@ -181,7 +183,8 @@ def cp(text: str, colour: Literal["red", "green", "yellow", "blue", "purple"], w
         return
 
 
-def error(text, current_time: bool = True, line_number: bool = True, finish_process: bool = False, exit_code: int = 0, log_error: bool = True):
+def error(text, current_time: bool = True, line_number: bool = True, finish_process: bool = False, exit_code: int = 0,
+          log_error: bool = True):
     result = f'Error: {text}'
     if line_number:
         result += f"\n  -> Line Number: {cf}"
@@ -235,7 +238,7 @@ def check_points(b: w, userid: int, prettyprint: bool = True) -> int:
         if goal_price <= points:
             cp(f"[VERY GOOD INFO] {gd(userid)} has enough points to redeem {dd[rg]['title']}!", "green")
         else:
-            cp(f"[INFO] {gd(userid)} is {points / goal_price}% of the way to redeeming (a) {dd[rg]['title']}!",
+            cp(f"[INFO] {gd(userid)} is {round((points / goal_price) * 100, 2) }% of the way to redeeming (a) {dd[rg]['title']}!",
                "purple")
     return int(points)
 
@@ -772,7 +775,7 @@ def sign_in(b: w, userid: int) -> None:
 
 
 def mobile_sign_in(userid: int, b: w):
-    sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000").text.splitlines()
+    sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000", verify=False).text.splitlines()
     b.execute_script(f'window.location.href = "https://bing.com/?q={sa[randint(0, len(sa) - 1)]}";')
     wait(2)
     b.find_element(By.ID, 'mHamburger').click()  # //*[@id="mHamburger"]
@@ -790,7 +793,7 @@ def mobile_sign_in(userid: int, b: w):
 
 
 def another_stupid_sign_in(userid: int, b: w):
-    sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000").text.splitlines()
+    sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000", verify=False).text.splitlines()
     b.execute_script(f'window.location.href = "https://bing.com/?q={sa[765]}";')
     wait(2)
     logged_in_account = b.find_element(By.ID, 'id_n').text
@@ -829,7 +832,7 @@ def calculate(microsoft_gift_card: bool, purchase_cost: int, acc: int, daily_poi
            "green")
 
 
-def write_json(new_data, filename='logs/logs.json'):
+def write_json(new_data, filename='logs.json'):
     with open(filename, 'r+') as file:
         file_data = json.load(file)
         file_data["logs"].append(new_data)
@@ -1007,14 +1010,29 @@ if __name__ == '__main__':
         delay = randint(1, 30)
         cp(f"[INFO] Delay Enabled (Delayed for {delay} minutes.)", "purple")
         wait(delay)
-    
+
     if args.calculatetime:
         calculate(
             microsoft_gift_card=load(open('credentials.json'))['calculate time config']['redeem_microsoft_gift_card?'],
-            purchase_cost=load(open('credentials.json'))['calculate time config']["how much does it cost to buy your item in $"],
-            acc=load(open('credentials.json'))['config']['How many accounts are you using?'], daily_points=230)
+            purchase_cost=load(open('credentials.json'))['calculate time config'][
+                "how much does it cost to buy your item in $"],
+            acc=load(open('credentials.json'))['config']['How many accounts are you using?'],
+            daily_points=230)
     else:
         for mainuserid in range(0, accounts):
             main(mainuserid)
+
         if args.log:
-            write_json(log)
+            cp('Attempting to write logs', "yellow")
+            try:
+                write_json(log)
+                cp('Successfully written to logs.json.', "green")
+            except Exception as log_e:
+                error(log_e)
+                cp('Failed to write logs, retrying...', "yellow")
+                try:
+                    write_json(log)
+                    cp('Successfully written to logs.json.', "green")
+                except Exception as log_e:
+                    error(log_e)
+                    error('Failed to write logs.')
