@@ -38,7 +38,7 @@ credentials_file = 'credentials.json'  # If you downloaded the source files, no 
 #####################
 #  ADVANCED CONFIG  #
 #####################
-version = "0.9.5.1 BETA"
+version = "0.9.5.2 BETA"
 options = Options()
 json = load(open(credentials_file))
 credentials = []
@@ -1028,7 +1028,7 @@ if __name__ == '__main__':
         for mainuserid in range(0, accounts):
             main(mainuserid)
 
-        if args.log:
+        if args.logs:
             cp('Attempting to write logs', "yellow")
             try:
                 write_json(log)
