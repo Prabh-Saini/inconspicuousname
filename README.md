@@ -22,7 +22,7 @@ If you have administrator you can skip to **Configuration** running the file, ho
 "webdriver location": "C://Utility//msedgedriver.exe"
 ```
 ## Configuration
-BEFORE READING ON FURTHER MAKE SURE THE FIRST NAME ON YOUR MICROSOFT ACCOUNT IS IN YOUR EMAIL EG. Sarah and sarahjones@gmail.com, Harry and harrylarry@outlook.com, or Tacos and tacosaretasty@tacos.com. The ONLY exception to this rule is if your microsoft account does not have a first name and just shows its email, eg. email@email.com = email@email.com.
+**BEFORE READING ON FURTHER MAKE SURE THE FIRST NAME ON YOUR MICROSOFT ACCOUNT IS IN YOUR EMAIL **e.g. Sarah and sarahjones@gmail.com, Harry and harrylarry@outlook.com, or Tacos and tacosaretasty@tacos.com. The ONLY exception to this rule is if your microsoft account does not have a first name and just shows its email, eg. email@email.com = email@email.com.
 To add add/change microsoft acccounts, open "credentials.json", and change the file accordingly. Keep in mind, the more accounts you run, the higher chance you get detected as a bot, many people recommend to have a maximum of 2-3 accounts running. For example:
 ```
 {
