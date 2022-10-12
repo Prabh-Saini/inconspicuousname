@@ -38,7 +38,7 @@ credentials_file = 'credentials.json'  # If you downloaded the source files, no 
 #####################
 #  ADVANCED CONFIG  #
 #####################
-version = "0.9.5.2 BETA"
+version = "0.9.5.3 BETA"
 options = Options()
 json = load(open(credentials_file))
 credentials = []
