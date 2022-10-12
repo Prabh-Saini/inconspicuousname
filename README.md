@@ -1,7 +1,7 @@
 # M$ Rewards
 A selenium-python program that literally makes you money! 
-## Responsibility
-I am not responsible for your account(s). This program is use at your own risk, Microsoft holds the right to lock, or ban your account.
+## Disclaimer
+I am not responsible for your account(s). This program is a use at your own risk, Microsoft holds the right to lock, or ban your account.
 ## Features
 M$ Rewards has many features including:
 * Automatic Mobile search
@@ -23,7 +23,7 @@ If you have administrator you can skip to **Configuration** running the file, ho
 ```
 ## Configuration
 BEFORE READING ON FURTHER MAKE SURE THE FIRST NAME ON YOUR MICROSOFT ACCOUNT IS IN YOUR EMAIL EG. Sarah and sarahjones@gmail.com, Harry and harrylarry@outlook.com, or Tacos and tacosaretasty@tacos.com. The ONLY exception to this rule is if your microsoft account does not have a first name and just shows its email, eg. email@email.com = email@email.com.
-To add/change microsoft acccounts, open "credentials.json", and change the file accordingly. Keep in mind, the more accounts you run, the higher chance you get detected as a bot, many people recommend to have a maximum of 2-3 accounts running. For example:
+To add add/change microsoft acccounts, open "credentials.json", and change the file accordingly. Keep in mind, the more accounts you run, the higher chance you get detected as a bot, many people recommend to have a maximum of 2-3 accounts running. For example:
 ```
 {
   "username": "username@example.com",
