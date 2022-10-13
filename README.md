@@ -1,7 +1,7 @@
 # M$ Rewards
 A selenium-python program that literally makes you money! 
 ## Disclaimer
-I am not responsible for your account(s). This program is a use at your own risk, Microsoft holds the right to lock, or ban your account.
+I am not responsible for your account(s). This program is to be used at your own risk. Microsoft holds the right to lock, or ban your account.
 ## Features
 M$ Rewards has many features including:
 * Automatic Mobile search
