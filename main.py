@@ -1,6 +1,3 @@
-# Changelog
-# userconfig
-# desktop sign up used to be the 765th item in the array but that happened to be bangladesh lmaoo so now randomised
 import argparse
 import urllib.parse
 from datetime import datetime
@@ -58,6 +55,7 @@ parser.add_argument('--logs', dest='logs', default=False, action='store_true',
                     help='Logs, recommended if you would like to keep a record of the bot to make sure it has been working daily.')
 parser.add_argument('--calculatetime', dest='calculatetime', default=False, action='store_true',
                     help='M$ Calculator is a way to calculate how long it will take to purchase an item using M$ Rewards. To use M$ Calculator, you want to change credentials json according to README.md')
+parser.add_argument('--bat', dest='bat', default=False, action='store_true', help='If your running from bat script (not neccersary though)')
 args = parser.parse_args()
 log = {"time": "",
        "version": "",
@@ -79,27 +77,32 @@ def create_b_instance(mobile_instance: Literal[True, False], userid: int) -> w:
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36 Edg/105.0.1343.53',
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36 Edg/106.0.1370.34',
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36 Edg/106.0.1370.34']
+
     mobile = [
         'Mozilla/5.0 (iPhone; CPU iPhone OS 12_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.1 EdgiOS/44.5.0.10 Mobile/15E148 Safari/604.1',
         'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 EdgiOS/100.1185.50 Mobile/15E148 Safari/605.1.15',
         'Mozilla/5.0 (Linux; Android 10; Pixel 3 XL) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.5249.79 Mobile Safari/537.36 EdgA/100.0.1185.50']
+
+    b: w
 
     if mobile_instance:
         options.add_argument(f"user-agent={mobile[userid]}")
     else:
         options.add_argument(f"user-agent={desktop[userid]}")
 
-    options.add_argument('lang=en-AU')
-    options.add_argument('--disable-blink-features=AutomationControlled')
     preference = {"profile.default_content_setting_values.geolocation": 2,
                   "credentials_enable_service": False,
                   "profile.password_manager_enabled": False,
                   "webrtc.ip_handling_policy": "disable_non_proxied_udp",
                   "webrtc.multiple_routes_enabled": False,
                   "webrtc.nonproxied_udp_enabled": False}
+
+    options.add_argument('lang=en-AU')
+    options.add_argument('--disable-blink-features=AutomationControlled')
     options.add_experimental_option("prefs", preference)
     options.add_experimental_option("useAutomationExtension", False)
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
+
     if psys() == 'Linux':
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
@@ -115,7 +118,9 @@ def create_b_instance(mobile_instance: Literal[True, False], userid: int) -> w:
             '1. Go to C: in file explorer'
             '2. Create a folder called "Utility" (this does not require administrator)'
             '3. Download the latest msedgedriver at https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/ and place the file in C://Utility'
-            '4. Open credentials.json and paste in "C://Webdrivers/msedgedriver.exe"', False)
+            '4. Open credentials.json and paste in "C://Webdrivers/msedgedriver.exe"',
+            False)
+
         b = w.Edge(service=Service(EdgeChromiumDriverManager().install()), options=options)
 
     return b
@@ -782,7 +787,7 @@ def sign_in(b: w, userid: int) -> None:
 
 
 def mobile_sign_in(userid: int, b: w):
-    sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000", verify=False).text.splitlines()
+    sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000", verify=verify_request).text.splitlines()  # sa = search array
     b.execute_script(f'window.location.href = "https://bing.com/?q={sa[randint(0, len(sa) - 1)]}";')
     wait(2)
     b.find_element(By.ID, 'mHamburger').click()  # //*[@id="mHamburger"]
@@ -800,7 +805,7 @@ def mobile_sign_in(userid: int, b: w):
 
 
 def another_stupid_sign_in(userid: int, b: w):
-    sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000", verify=False).text.splitlines()
+    sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000", verify=verify_request).text.splitlines()  # sa = search array
     b.execute_script(f'window.location.href = "https://bing.com/?q={sa[randint(0, 9999)]}";')
     wait(2)
     logged_in_account = b.find_element(By.ID, 'id_n').text
@@ -813,23 +818,25 @@ def another_stupid_sign_in(userid: int, b: w):
         wait(4)
         cp('[INFO] Bing did not automatically connect to your specified M$ Rewards account, it has automatically been resolved now.',
            "purple")
+        b.switch_to.window(window_name=b.window_handles[0])
 
 
 def calculate(microsoft_gift_card: bool, purchase_cost: int, acc: int, daily_points: int):
     needed_gift_cards = c(purchase_cost / 5)
     needed_points_per_account = 0
     if acc == 1:
-        if microsoft_gift_card == "yes":
+        if microsoft_gift_card:
             needed_points_per_account += needed_gift_cards * 4750
         else:
             needed_points_per_account += needed_gift_cards * 6750
         estimated_time = c(needed_points_per_account / daily_points)
         excess_value = purchase_cost - (needed_gift_cards * 5)
-        print(
-            f'It will take {estimated_time} days to get {needed_gift_cards} $5 gift cards to purchase your item that costs ${purchase_cost}, therefore an excess giftcard value of ${excess_value}')
+        print(f'It will take {estimated_time} days to get {needed_gift_cards} $5 gift cards to purchase your item that costs ${purchase_cost}, therefore an excess giftcard value of ${excess_value}')
+        return estimated_time
     elif acc >= 2:
         gift_cards_needed_per_account = c(needed_gift_cards / acc)
-        if microsoft_gift_card == "yes":
+
+        if microsoft_gift_card:
             needed_points_per_account += gift_cards_needed_per_account * 4750
         else:
             needed_points_per_account += gift_cards_needed_per_account * 6750
@@ -837,6 +844,9 @@ def calculate(microsoft_gift_card: bool, purchase_cost: int, acc: int, daily_poi
         excess_value = (gift_cards_needed_per_account * 5 * acc) - purchase_cost
         cp(f'It will take {estimated_time} days to get {gift_cards_needed_per_account} $5 gift cards on each {acc} accounts, to purchase your item that costs ${purchase_cost}, therefore an excess giftcard value of ${excess_value}',
            "green")
+        return estimated_time
+    else:
+        error("invalid account number")
 
 
 def write_json(new_data: dict, filename='logs.json'):
@@ -1007,6 +1017,8 @@ def main(u: int = 0):
 
 if __name__ == '__main__':
     logo()
+    if args.bat:
+        cp("[INFO] Running from .bat", "purple")
 
     if tacos != "yes":
         error("You do not like tacos. Script will not run until you fix your opinion in credentials.json",
