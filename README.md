@@ -61,7 +61,7 @@ python main.py --calculatetime
 ```
 It will return an result that should look something like this:
 ``` 
-It will take 206 days to get 7 $5 gift cards on each 3 accounts, to purchase your item that costs $100, therefore an excess giftcard value of $5
+It will take 206 days to get 7 $5 gift cards on 3 accounts, to purchase your item that costs $100, therefore an excess giftcard value of $5
 ```
 ## Credit
 Credit to [@charlesbel](https://github.com/charlesbel)  for originally coming up and developing the idea!
