@@ -108,6 +108,7 @@ def create_b_instance(mobile_instance: Literal[True, False]) -> w:
     options.add_experimental_option("prefs", preference)
     options.add_experimental_option("useAutomationExtension", False)
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option('excludeSwitches', ['enable-logging'])
 
     if psys() == 'Linux':
         options.add_argument("--no-sandbox")
@@ -119,7 +120,7 @@ def create_b_instance(mobile_instance: Literal[True, False]) -> w:
     if webdriver_path.endswith(".exe"):
         b = w.Edge(service=Service(webdriver_path), options=options)
     else:
-        Warning(
+        warn(
             'The specified webdriver path in credentials.json is invalid. If M$ Rewards is still working you can avoid this warning, otherwise follow the steps below.'
             '1. Go to C: in file explorer'
             '2. Create a folder called "Utility" (this does not require administrator)'
