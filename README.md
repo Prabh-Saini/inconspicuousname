@@ -1,7 +1,7 @@
 # M$ Rewards
 A selenium-python program that literally makes you money! 
 ## Disclaimer
-I am not responsible for your account(s). This program is to be used at your own risk. Microsoft holds the right to lock, or ban your account.
+I am not responsible for your account(s). This program is a use at your own risk, Microsoft holds the right to lock, or ban your account.
 ## Features
 M$ Rewards has many features including:
 * Automatic Mobile search
@@ -22,7 +22,7 @@ If you have administrator you can skip to **Configuration** running the file, ho
 "webdriver location": "C://Utility//msedgedriver.exe"
 ```
 ## Configuration
-**BEFORE READING ON FURTHER MAKE SURE THE FIRST NAME ON YOUR MICROSOFT ACCOUNT IS IN YOUR EMAIL **e.g. Sarah and sarahjones@gmail.com, Harry and harrylarry@outlook.com, or Tacos and tacosaretasty@tacos.com. The ONLY exception to this rule is if your microsoft account does not have a first name and just shows its email, eg. email@email.com = email@email.com.
+BEFORE READING ON FURTHER MAKE SURE THE FIRST NAME ON YOUR MICROSOFT ACCOUNT IS IN YOUR EMAIL EG. Sarah and sarahjones@gmail.com, Harry and harrylarry@outlook.com, or Tacos and tacosaretasty@tacos.com. The ONLY exception to this rule is if your microsoft account does not have a first name and just shows its email, eg. email@email.com = email@email.com.
 To add add/change microsoft acccounts, open "credentials.json", and change the file accordingly. Keep in mind, the more accounts you run, the higher chance you get detected as a bot, many people recommend to have a maximum of 2-3 accounts running. For example:
 ```
 {
@@ -61,7 +61,7 @@ python main.py --calculatetime
 ```
 It will return an result that should look something like this:
 ``` 
-It will take 206 days to get 7 $5 gift cards on 3 accounts, to purchase your item that costs $100, therefore an excess giftcard value of $5
+It is estimated that it will take 206 days to get 20 $5 gift cards (7 giftcards on each of the 3 accounts) to purchase your item that costs $100, leaving you an excess giftcard value of $5!
 ```
 ## Credit
-Credit to [@charlesbel](https://github.com/charlesbel)  for originally coming up and developing the idea!
+Credit to [@charlesbel]("https://github.com/charlesbel") for originally coming up and developing the idea!
