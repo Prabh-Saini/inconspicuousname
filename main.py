@@ -1062,7 +1062,7 @@ if __name__ == '__main__':
     if args.calculatetime:
         calculate(
             microsoft_gift_card=load(open(credentials_file))['calculate time config']['redeem_microsoft_gift_card?'],
-            purchase_cost=load(open(credentials_file))['calculate time config']["how much does it cost to buy your item"],
+            purchase_cost=load(open(credentials_file))['calculate time config']["How much does it cost to buy your item"],
             acc=load(open(credentials_file))['config']['How many accounts are you using?'],
             daily_points=230)
     else:
