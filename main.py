@@ -8,6 +8,7 @@ from platform import system as psys
 from random import randint
 from sys import exit
 from time import sleep as wait
+from time import time
 from typing import Literal
 import requests
 from selenium import webdriver as w
@@ -35,15 +36,15 @@ credentials_file = 'credentials.json'  # If you downloaded the source files, no 
 #####################
 #  ADVANCED CONFIG  #
 #####################
-version = "0.9.5.3 BETA"
+version = "9.9.9 BETA"
 options = Options()
 json = load(open(credentials_file))
 credentials = []
 system = psys()
-cf = currentframe()
 accounts = json['config']['How many accounts are you using?']
 tacos = json['config']['Do you like tacos?']
 verify_request = json['config']['verify request']
+sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000", verify=verify_request).text.splitlines()
 log_name = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
 email = (By.ID, "i0116")
 password = (By.ID, "i0118")
@@ -138,11 +139,10 @@ def login(userid: int, b: w):
     wait(1)
     WDWait(b, 100).until(ec.element_to_be_clickable(next_button)).click()
     wait(2)
+
     if b.title == "We're updating our terms" or element_exist(By.ID, 'iAccrualForm', b=b):
         WDWait(b, 100).until(ec.element_to_be_clickable((By.ID, 'iNext'))).click()
-    if b.title == "Your account has been temporarily suspended" or element_exist(By.CLASS_NAME,
-                                                                                 "serviceAbusePageContainer  PageContainer",
-                                                                                 b=b):
+    if b.title == "Your account has been temporarily suspended" or element_exist(By.CLASS_NAME, "serviceAbusePageContainer  PageContainer", b=b):
         error("Account Suspended", line_number=False, finish_process=True)
     if b.title == "Help us protect your account":
         error("Account Locked", line_number=False, finish_process=True)
@@ -159,7 +159,6 @@ def logout(userid: int, b: w):
 
 
 def search(searches: int, b: w, userid: int):
-    sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000", verify=verify_request).text.splitlines()  # sa = search array
     try:
         for abcdefghijklmnopqrstuvwxyz in range(1, randint(searches + 1, searches + 10) + 1):
             d = randint(0, len(sa) - 1)
@@ -190,7 +189,7 @@ def cp(text: str, colour: Literal["red", "green", "yellow", "blue", "purple"], w
         print(f"\033[93m{text}\033[00m")
     elif colour == "blue":
         print(f"\033[94m{text}\033[00m")
-    else:
+    elif colour == "purple":
         print(f"\033[95m{text}\033[00m")
     if write_log:
         log["other"] += text
@@ -199,7 +198,7 @@ def cp(text: str, colour: Literal["red", "green", "yellow", "blue", "purple"], w
 def error(text, current_time: bool = True, line_number: bool = True, finish_process: bool = False, exit_code: int = 0, log_error: bool = True):
     result = f'Error: {text}'
     if line_number:
-        result += f"\n  -> Line Number: {cf}"
+        result += f"\n  -> Line Number: {currentframe()}"
     if current_time:
         result += f"\n  -> Current Time: {datetime.now().strftime('%H:%M:%S')}"
     cp(result, "red")
@@ -787,7 +786,6 @@ def sign_in(b: w, userid: int) -> None:
 
 
 def mobile_sign_in(userid: int, b: w):
-    sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000", verify=verify_request).text.splitlines()  # sa = search array
     b.execute_script(f'window.location.href = "https://bing.com/?q={sa[randint(0, len(sa) - 1)]}";')
     wait(2)
     b.find_element(By.ID, 'mHamburger').click()  # //*[@id="mHamburger"]
@@ -805,7 +803,6 @@ def mobile_sign_in(userid: int, b: w):
 
 
 def another_stupid_sign_in(userid: int, b: w):
-    sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000", verify=verify_request).text.splitlines()  # sa = search array
     b.execute_script(f'window.location.href = "https://bing.com/?q={sa[randint(0, 9999)]}";')
     wait(2)
     logged_in_account = b.find_element(By.ID, 'id_n').text
@@ -857,9 +854,38 @@ def write_json(new_data: dict, filename='logs.json'):
         json.dump(file_data, file, indent=4)
 
 
-#######################
-#  HOPE FOR THE BEST  #
-#######################
+class Timer:
+    def __init__(self):
+        self.timer_start = 0
+        self.timer_end = 0
+
+    def start(self):
+        """Start Timer"""
+        self.timer_start = time()
+
+    def end(self):
+        """End Timer (Optional)"""
+        self.timer_end = time()
+
+    def result(self, print_result: bool = True):
+        """Print Result"""
+        if self.timer_end == 0:
+            self.timer_end = time()
+        if self.timer_start == 0:
+            return error("Timer.start() non-existant. Start the timer stupid.")
+        secs = self.timer_end - self.timer_start
+        mins = secs // 60
+        sec = secs % 60
+        hours = mins // 60
+        mins = mins % 60
+        if print_result:
+            print(f"Elapsed Time: {int(hours)} hours, {int(mins)} minutes, and {int(sec)} seconds")
+        return hours, mins, sec
+
+
+#############
+#  Execute  #
+#############
 def main(u: int = 0):
     # Desktop search
     def desktop():
@@ -1017,6 +1043,9 @@ def main(u: int = 0):
 
 if __name__ == '__main__':
     logo()
+    timer = Timer()
+    timer.start()
+
     if args.bat:
         cp("[INFO] Running from .bat", "purple")
 
@@ -1033,7 +1062,7 @@ if __name__ == '__main__':
     if args.calculatetime:
         calculate(
             microsoft_gift_card=load(open(credentials_file))['calculate time config']['redeem_microsoft_gift_card?'],
-            purchase_cost=load(open(credentials_file))['calculate time config']["how much does it cost to buy your item in $"],
+            purchase_cost=load(open(credentials_file))['calculate time config']["how much does it cost to buy your item"],
             acc=load(open(credentials_file))['config']['How many accounts are you using?'],
             daily_points=230)
     else:
@@ -1054,3 +1083,6 @@ if __name__ == '__main__':
                 except Exception as log_e:
                     error(log_e)
                     error('Failed to write logs.')
+
+    timer.end()
+    timer.result()
