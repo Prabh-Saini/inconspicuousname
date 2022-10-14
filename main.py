@@ -10,6 +10,7 @@ from sys import exit
 from time import sleep as wait
 from time import time
 from typing import Literal
+
 import requests
 from selenium import webdriver as w
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -56,7 +57,8 @@ parser.add_argument('--logs', dest='logs', default=False, action='store_true',
                     help='Logs, recommended if you would like to keep a record of the bot to make sure it has been working daily.')
 parser.add_argument('--calculatetime', dest='calculatetime', default=False, action='store_true',
                     help='M$ Calculator is a way to calculate how long it will take to purchase an item using M$ Rewards. To use M$ Calculator, you want to change credentials json according to README.md')
-parser.add_argument('--bat', dest='bat', default=False, action='store_true', help='If your running from bat script (not neccersary though)')
+parser.add_argument('--bat', dest='bat', default=False, action='store_true',
+                    help='If your running from bat script (not neccersary though)')
 args = parser.parse_args()
 log = {"time": "",
        "version": "",
@@ -73,7 +75,7 @@ for i in json['credentials']:
 ###############
 #  Functions  #
 ###############
-def create_b_instance(mobile_instance: Literal[True, False], userid: int) -> w:
+def create_b_instance(mobile_instance: Literal[True, False]) -> w:
     desktop = [
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36 Edg/105.0.1343.53',
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36 Edg/106.0.1370.34',
@@ -87,16 +89,18 @@ def create_b_instance(mobile_instance: Literal[True, False], userid: int) -> w:
     b: w
 
     if mobile_instance:
-        options.add_argument(f"user-agent={mobile[userid]}")
+        options.add_argument(f"user-agent={mobile[randint(1, 3)]}")
     else:
-        options.add_argument(f"user-agent={desktop[userid]}")
+        options.add_argument(f"user-agent={desktop[randint(1, 3)]}")
 
-    preference = {"profile.default_content_setting_values.geolocation": 2,
-                  "credentials_enable_service": False,
-                  "profile.password_manager_enabled": False,
-                  "webrtc.ip_handling_policy": "disable_non_proxied_udp",
-                  "webrtc.multiple_routes_enabled": False,
-                  "webrtc.nonproxied_udp_enabled": False}
+    preference = {
+        "profile.default_content_setting_values.geolocation": 2,
+        "credentials_enable_service": False,
+        "profile.password_manager_enabled": False,
+        "webrtc.ip_handling_policy": "disable_non_proxied_udp",
+        "webrtc.multiple_routes_enabled": False,
+        "webrtc.nonproxied_udp_enabled": False
+    }
 
     options.add_argument('lang=en-AU')
     options.add_argument('--disable-blink-features=AutomationControlled')
@@ -130,6 +134,7 @@ def create_b_instance(mobile_instance: Literal[True, False], userid: int) -> w:
 def login(userid: int, b: w):
     b.get('https://login.live.com/')
     cp(f"Attempting to log in to {gd(userid)}.", "yellow")
+
     wait(1)
     WDWait(b, 100).until(ec.element_to_be_clickable(email)).send_keys(gd(userid))
     wait(1)
@@ -140,14 +145,21 @@ def login(userid: int, b: w):
     WDWait(b, 100).until(ec.element_to_be_clickable(next_button)).click()
     wait(2)
 
+    # checks
     if b.title == "We're updating our terms" or element_exist(By.ID, 'iAccrualForm', b=b):
         WDWait(b, 100).until(ec.element_to_be_clickable((By.ID, 'iNext'))).click()
-    if b.title == "Your account has been temporarily suspended" or element_exist(By.CLASS_NAME, "serviceAbusePageContainer  PageContainer", b=b):
+
+    if b.title == "Your account has been temporarily suspended" or element_exist(By.CLASS_NAME,
+                                                                                 "serviceAbusePageContainer  PageContainer",
+                                                                                 b=b):
         error("Account Suspended", line_number=False, finish_process=True)
+
     if b.title == "Help us protect your account":
         error("Account Locked", line_number=False, finish_process=True)
+
     if str(b.current_url).split('?')[0] == "https://account.live.com/proofs/Add":
         error("Account needs additional login info", line_number=False, finish_process=True)
+
     cp(f"Successfully logged into {gd(userid)}.", "green")
 
 
@@ -195,7 +207,8 @@ def cp(text: str, colour: Literal["red", "green", "yellow", "blue", "purple"], w
         log["other"] += text
 
 
-def error(text, current_time: bool = True, line_number: bool = True, finish_process: bool = False, exit_code: int = 0, log_error: bool = True):
+def error(text, current_time: bool = True, line_number: bool = True, finish_process: bool = False, exit_code: int = 0,
+          log_error: bool = True):
     result = f'Error: {text}'
     if line_number:
         result += f"\n  -> Line Number: {currentframe()}"
@@ -249,7 +262,7 @@ def check_points(b: w, userid: int, prettyprint: bool = True) -> int:
         if goal_price <= points:
             cp(f"[VERY GOOD INFO] {gd(userid)} has enough points to redeem {dd[rg]['title']}!", "green")
         else:
-            cp(f"[INFO] {gd(userid)} is {round((points / goal_price) * 100, 2) }% of the way to redeeming (a) {dd[rg]['title']}!",
+            cp(f"[INFO] {gd(userid)} is {round((points / goal_price) * 100, 2)}% of the way to redeeming (a) {dd[rg]['title']}!",
                "purple")
     return int(points)
 
@@ -828,7 +841,8 @@ def calculate(microsoft_gift_card: bool, purchase_cost: int, acc: int, daily_poi
             needed_points_per_account += needed_gift_cards * 6750
         estimated_time = c(needed_points_per_account / daily_points)
         excess_value = purchase_cost - (needed_gift_cards * 5)
-        print(f'It will take {estimated_time} days to get {needed_gift_cards} $5 gift cards to purchase your item that costs ${purchase_cost}, therefore an excess giftcard value of ${excess_value}')
+        print(
+            f'It will take {estimated_time} days to get {needed_gift_cards} $5 gift cards to purchase your item that costs ${purchase_cost}, therefore an excess giftcard value of ${excess_value}')
         return estimated_time
     elif acc >= 2:
         gift_cards_needed_per_account = c(needed_gift_cards / acc)
@@ -889,7 +903,7 @@ class Timer:
 def main(u: int = 0):
     # Desktop search
     def desktop():
-        b = create_b_instance(mobile_instance=False, userid=u)
+        b = create_b_instance(mobile_instance=False)
 
         try:
             login(u, b)
@@ -990,7 +1004,7 @@ def main(u: int = 0):
 
     # Mobile search
     def mobile():
-        b = create_b_instance(mobile_instance=True, userid=u)
+        b = create_b_instance(mobile_instance=True)
 
         try:
             login(u, b)
@@ -1062,7 +1076,8 @@ if __name__ == '__main__':
     if args.calculatetime:
         calculate(
             microsoft_gift_card=load(open(credentials_file))['calculate time config']['redeem_microsoft_gift_card?'],
-            purchase_cost=load(open(credentials_file))['calculate time config']["How much does it cost to buy your item"],
+            purchase_cost=load(open(credentials_file))['calculate time config'][
+                "How much does it cost to buy your item"],
             acc=load(open(credentials_file))['config']['How many accounts are you using?'],
             daily_points=230)
     else:
