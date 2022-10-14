@@ -117,7 +117,7 @@ def create_b_instance(mobile_instance: Literal[True, False]) -> w:
     webdriver_path = json['config']['webdriver location']
 
     if webdriver_path.endswith(".exe"):
-        b = w.Edge(executable_path=webdriver_path, options=options)
+        b = w.Edge(service=Service(webdriver_path), options=options)
     else:
         Warning(
             'The specified webdriver path in credentials.json is invalid. If M$ Rewards is still working you can avoid this warning, otherwise follow the steps below.'
@@ -299,8 +299,7 @@ def complete_daily_set(b: w, userid: int):
                     cp(f'[INFO] Completing daily set {str(card_number)} (quiz)', "purple")
                     daily_set_quiz(card_number, b=b, userid=userid)
                 elif activity['pointProgressMax'] == 10 and activity['pointProgress'] == 0:
-                    search_url = urllib.parse.unquote(
-                        urllib.parse.parse_qs(urllib.parse.urlparse(activity['destinationUrl']).query)['ru'][0])
+                    search_url = urllib.parse.unquote(urllib.parse.parse_qs(urllib.parse.urlparse(activity['destinationUrl']).query)['ru'][0])
                     search_url_query = urllib.parse.parse_qs(urllib.parse.urlparse(search_url).query)
                     filters = {}
                     for f in search_url_query['filters'][0].split(" "):
@@ -552,7 +551,7 @@ def wait_until_q_loads(b: w, quiz_question: Literal["quiz", "questions"] = "quiz
             if quiz_question == "quiz":
                 b.find_element(By.XPATH, '//*[@id="currentQuestionContainer"]')
             elif quiz_question == "questions":
-                b.find_elements(By.CLASS_NAME, 'rqECredits')[0]
+                b.find_elements(By.CLASS_NAME, 'rqECredits')
             return True
         except Exception as e:
             error(e)
