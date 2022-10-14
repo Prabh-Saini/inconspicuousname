@@ -894,9 +894,10 @@ class Timer:
         sec = secs % 60
         hours = mins // 60
         mins = mins % 60
+        elapsed_time = f"\nElapsed Time: {int(hours)} hours, {int(mins)} minutes, and {int(sec)} seconds\n"
         if print_result:
-            cp(f"\nElapsed Time: {int(hours)} hours, {int(mins)} minutes, and {int(sec)} seconds\n", colour)
-        return hours, mins, sec
+            cp(elapsed_time, colour)
+        return elapsed_time
 
 
 #############
@@ -1101,6 +1102,5 @@ if __name__ == '__main__':
                     error(log_e)
                     error('Failed to write logs.')
 
-    if not args.calculatetime:
-        timer.end()
-        timer.result()
+    print(timer.result(False) if not args.calculatetime else "")
+    
