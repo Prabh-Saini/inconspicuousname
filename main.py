@@ -10,7 +10,6 @@ from sys import exit
 from time import sleep as wait
 from time import time
 from typing import Literal
-
 import requests
 from selenium import webdriver as w
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -45,7 +44,7 @@ system = psys()
 accounts = json['config']['How many accounts are you using?']
 tacos = json['config']['Do you like tacos?']
 verify_request = json['config']['verify request']
-sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000", verify=verify_request).text.splitlines()
+sa: list
 log_name = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
 email = (By.ID, "i0116")
 password = (By.ID, "i0118")
@@ -60,6 +59,8 @@ parser.add_argument('--calculatetime', dest='calculatetime', default=False, acti
 parser.add_argument('--bat', dest='bat', default=False, action='store_true',
                     help='If your running from bat script (not neccersary though)')
 args = parser.parse_args()
+if not args.calculatetime:
+    sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000", verify=verify_request).text.splitlines()
 log = {"time": "",
        "version": "",
        "account_balance": [0, 0],
@@ -89,9 +90,9 @@ def create_b_instance(mobile_instance: Literal[True, False]) -> w:
     b: w
 
     if mobile_instance:
-        options.add_argument(f"user-agent={mobile[randint(1, 3)]}")
+        options.add_argument(f"user-agent={mobile[randint(0, 2)]}")
     else:
-        options.add_argument(f"user-agent={desktop[randint(1, 3)]}")
+        options.add_argument(f"user-agent={desktop[randint(0, 2)]}")
 
     preference = {
         "profile.default_content_setting_values.geolocation": 2,
@@ -267,11 +268,12 @@ def check_points(b: w, userid: int, prettyprint: bool = True) -> int:
     return int(points)
 
 
-def logo():
-    cp("███╗   ███╗▄▄███▄▄·    ██████╗ ███████╗██╗    ██╗ █████╗ ██████╗ ██████╗ ███████╗\n████╗ ████║██╔════╝    ██╔══██╗██╔════╝██║    ██║██╔══██╗██╔══██╗██╔══██╗██╔════╝\n██╔████╔██║███████╗    ██████╔╝█████╗  ██║ █╗ ██║███████║██████╔╝██║  ██║███████╗\n██║╚██╔╝██║╚════██║    ██╔══██╗██╔══╝  ██║███╗██║██╔══██║██╔══██╗██║  ██║╚════██║\n██║ ╚═╝ ██║███████║    ██║  ██║███████╗╚███╔███╔╝██║  ██║██║  ██║██████╔╝███████║\n╚═╝     ╚═╝╚═▀▀▀══╝    ╚═╝  ╚═╝╚══════╝ ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝",
+def logo(legend: bool):
+    cp("\n\n███╗   ███╗▄▄███▄▄·    ██████╗ ███████╗██╗    ██╗ █████╗ ██████╗ ██████╗ ███████╗\n████╗ ████║██╔════╝    ██╔══██╗██╔════╝██║    ██║██╔══██╗██╔══██╗██╔══██╗██╔════╝\n██╔████╔██║███████╗    ██████╔╝█████╗  ██║ █╗ ██║███████║██████╔╝██║  ██║███████╗\n██║╚██╔╝██║╚════██║    ██╔══██╗██╔══╝  ██║███╗██║██╔══██║██╔══██╗██║  ██║╚════██║\n██║ ╚═╝ ██║███████║    ██║  ██║███████╗╚███╔███╔╝██║  ██║██║  ██║██████╔╝███████║\n╚═╝     ╚═╝╚═▀▀▀══╝    ╚═╝  ╚═╝╚══════╝ ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝",
        "green")
     cp(f"By @Opensourceisgod on Github. V{version}", "blue")
-    print("Legend: \033[91m[ERROR] \033[92m[SUCCESS] \033[93m[ATTEMPT] \033[95m[INFO]\n\n")
+    if legend:
+        print("Legend: \033[91m[ERROR] \033[92m[SUCCESS] \033[93m[ATTEMPT] \033[95m[INFO]\n\n")
     log["time"] = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
     log["version"] = version
 
@@ -853,7 +855,7 @@ def calculate(microsoft_gift_card: bool, purchase_cost: int, acc: int, daily_poi
             needed_points_per_account += gift_cards_needed_per_account * 6750
         estimated_time = c(needed_points_per_account / daily_points)
         excess_value = (gift_cards_needed_per_account * 5 * acc) - purchase_cost
-        cp(f'It will take {estimated_time} days to get {gift_cards_needed_per_account} $5 gift cards on each {acc} accounts, to purchase your item that costs ${purchase_cost}, therefore an excess giftcard value of ${excess_value}',
+        cp(f'It is estimated that it will take {estimated_time} days to get {needed_gift_cards} $5 gift cards ({gift_cards_needed_per_account} giftcards on each of the {acc} accounts) to purchase your item that costs ${purchase_cost}, leaving you an excess giftcard value of ${excess_value}!',
            "green")
         return estimated_time
     else:
@@ -881,7 +883,7 @@ class Timer:
         """End Timer (Optional)"""
         self.timer_end = time()
 
-    def result(self, print_result: bool = True):
+    def result(self, print_result: bool = True, colour: Literal["red", "green", "yellow", "blue", "purple"] = "blue"):
         """Print Result"""
         if self.timer_end == 0:
             self.timer_end = time()
@@ -893,7 +895,7 @@ class Timer:
         hours = mins // 60
         mins = mins % 60
         if print_result:
-            print(f"Elapsed Time: {int(hours)} hours, {int(mins)} minutes, and {int(sec)} seconds")
+            cp(f"\nElapsed Time: {int(hours)} hours, {int(mins)} minutes, and {int(sec)} seconds\n", colour)
         return hours, mins, sec
 
 
@@ -1056,7 +1058,7 @@ def main(u: int = 0):
 
 
 if __name__ == '__main__':
-    logo()
+    logo(True if not args.calculatetime else False)
     timer = Timer()
     timer.start()
 
@@ -1099,5 +1101,6 @@ if __name__ == '__main__':
                     error(log_e)
                     error('Failed to write logs.')
 
-    timer.end()
-    timer.result()
+    if not args.calculatetime:
+        timer.end()
+        timer.result()
