@@ -49,6 +49,7 @@ log_name = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
 email = (By.ID, "i0116")
 password = (By.ID, "i0118")
 next_button = (By.ID, "idSIButton9")
+keyboardinterupt = False
 parser = argparse.ArgumentParser(description='M$ Rewards')
 parser.add_argument('--delay', dest='delay', default=False, action='store_true',
                     help='Delay, recommended  if you are running the script at the same time every day. Delay will randomly run the script 1-30 minutes later than normal.')
@@ -154,13 +155,13 @@ def login(userid: int, b: w):
     if b.title == "Your account has been temporarily suspended" or element_exist(By.CLASS_NAME,
                                                                                  "serviceAbusePageContainer  PageContainer",
                                                                                  b=b):
-        error("Account Suspended", line_number=False, finish_process=True)
+        error("Account Suspended", showlinenumber=False, finishprocess=True)
 
     if b.title == "Help us protect your account":
-        error("Account Locked", line_number=False, finish_process=True)
+        error("Account Locked", showlinenumber=False, finishprocess=True)
 
     if str(b.current_url).split('?')[0] == "https://account.live.com/proofs/Add":
-        error("Account needs additional login info", line_number=False, finish_process=True)
+        error("Account needs additional login info", showlinenumber=False, finishprocess=True)
 
     cp(f"Successfully logged into {gd(userid)}.", "green")
 
@@ -209,18 +210,23 @@ def cp(text: str, colour: Literal["red", "green", "yellow", "blue", "purple"], w
         log["other"] += text
 
 
-def error(text, current_time: bool = True, line_number: bool = True, finish_process: bool = False, exit_code: int = 0,
-          log_error: bool = True):
+def error(text, showtime: bool = True, showlinenumber: bool = True, finishprocess: bool = False, exit_code: int = 0, log_error: bool = True):
     result = f'Error: {text}'
-    if line_number:
-        result += f"\n  -> Line Number: {currentframe()}"
-    if current_time:
+
+    if showlinenumber:
+        result += f"\n  -> Line Number: {currentframe().f_back.f_lineno}"
+
+    if showtime:
         result += f"\n  -> Current Time: {datetime.now().strftime('%H:%M:%S')}"
+
     cp(result, "red")
+
     if log_error:
         log["errors"] += result
-    if finish_process:
-        input('Press any key to close...')
+
+    if finishprocess:
+        cp('M$ Rewards closing in five seconds...', 'red')
+        wait(5)
         exit(exit_code)
 
 
@@ -821,7 +827,8 @@ def another_stupid_sign_in(userid: int, b: w):
     b.execute_script(f'window.location.href = "https://bing.com/?q={sa[randint(0, 9999)]}";')
     wait(2)
     logged_in_account = b.find_element(By.ID, 'id_n').text
-    if logged_in_account.lower().replace(" ", "") in gd(userid, "username"):
+    print(userid)
+    if logged_in_account.lower().replace(" ", "") in gd(userid):
         return
     else:
         WDWait(b, 100).until(ec.element_to_be_clickable((By.ID, 'id_n'))).click()
@@ -831,6 +838,16 @@ def another_stupid_sign_in(userid: int, b: w):
         cp('[INFO] Bing did not automatically connect to your specified M$ Rewards account, it has automatically been resolved now.',
            "purple")
         b.switch_to.window(window_name=b.window_handles[0])
+    # another back up in case when going to rewards.ms.com it goes to the welcome page instead of login because
+    # it is stupid like that >:(
+    wait(2)
+    b.execute_script('window.location.href = "https://rewards.microsoft.com"')
+    wait(3)
+    if "/welcome" in b.current_url:
+        wait(3)
+        WDWait(b, 100).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="start-earning-rewards-link"]'))).click()
+        cp('[INFO] Microsoft Rewards did not automatically connect to your specified M$ Rewards account, it has automatically been resolved now.',
+           "purple")
 
 
 def calculate(microsoft_gift_card: bool, purchase_cost: int, acc: int, daily_points: int):
@@ -903,7 +920,7 @@ class Timer:
 #############
 #  Execute  #
 #############
-def main(u: int = 0):
+def main(u: int):
     # Desktop search
     def desktop():
         b = create_b_instance(mobile_instance=False)
@@ -920,7 +937,7 @@ def main(u: int = 0):
         wait(5)
 
         try:
-            another_stupid_sign_in(u, b)
+            another_stupid_sign_in(userid=u, b=b)
         except Exception as e:
             error(e)
             another_stupid_sign_in(u, b)
@@ -1068,7 +1085,7 @@ if __name__ == '__main__':
 
     if tacos != "yes":
         error("You do not like tacos. Script will not run until you fix your opinion in credentials.json",
-              finish_process=True)
+              finishprocess=True)
 
     if args.delay:
         log['delay'] = True
@@ -1078,14 +1095,20 @@ if __name__ == '__main__':
 
     if args.calculatetime:
         calculate(
-            microsoft_gift_card=load(open(credentials_file))['calculate time config']['redeem_microsoft_gift_card?'],
-            purchase_cost=load(open(credentials_file))['calculate time config'][
+            microsoft_gift_card=json['calculate time config']['redeem_microsoft_gift_card?'],
+            purchase_cost=json['calculate time config'][
                 "How much does it cost to buy your item"],
-            acc=load(open(credentials_file))['config']['How many accounts are you using?'],
-            daily_points=230)
+            acc=json['config']['How many accounts are you using?'],
+            daily_points=json['calculate time config']['estimated daily points'])
     else:
-        for mainuserid in range(0, accounts):
-            main(mainuserid)
+        try:
+            for mainuserid in range(0, accounts):
+                main(mainuserid)
+        except KeyboardInterrupt:
+            keyboardinterupt = True
+            error("M$ Rewards stopped. (Keyboard Interrupt)", showtime=False, showlinenumber=False, finishprocess=True)
+        else:
+            error("lmao something went wrong", finishprocess=True)
 
         if args.logs:
             cp('Attempting to write logs', "yellow")
@@ -1102,5 +1125,4 @@ if __name__ == '__main__':
                     error(log_e)
                     error('Failed to write logs.')
 
-    print(timer.result(False) if not args.calculatetime else "")
-    
+    print(timer.result(False) if not args.calculatetime or keyboardinterupt else "")
