@@ -4,14 +4,14 @@ A selenium-python program that literally makes you money!
 I am not responsible for your account(s). This program is a use at your own risk, Microsoft holds the right to lock, or ban your account.
 ## Features
 M$ Rewards has many features including:
-* Automatic Mobile search
-* Automatic Desktop search
-* Automatic Daily set completion
-* Automatic Quest and Punch Card completion
-* Automatic "More Activites" completion
+* Automatic Mobile search.
+* Automatic Desktop search.
+* Automatic Daily set completion.
+* Automatic Quest and Punch Card completion.
+* Automatic "More Activites" completion.
 * Detect locked, suspended, and "unusual activity" accounts. 
 * Should be bot undectable, who really knows though.  
-* Multi-account management (support for as many accounts as you want, although the most ever tested was 3)
+* Multi-account management (support for as many accounts as you want).
 ## First Time Set Up
 To initally run M$ Rewards, you will need to open up command line and type in:
 ```
