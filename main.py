@@ -89,11 +89,20 @@ def create_b_instance(mobile_instance: Literal[True, False]) -> w:
         'Mozilla/5.0 (Linux; Android 10; Pixel 3 XL) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.5249.79 Mobile Safari/537.36 EdgA/100.0.1185.50']
 
     b: w
-
+    acc_value = stepback(accounts, 2)
     if mobile_instance:
-        options.add_argument(f"user-agent={mobile[randint(0, 2)]}")
+        options.add_argument(f"user-agent={mobile[acc_value]}")
+        if acc_value == 0:
+            options.add_argument("--window-size=640,1136")  # resolution of iphone 5s
+        elif acc_value == 1:
+            options.add_argument("--window-size=2778,1284")  # resolution of iphone 13 pro max
+        elif acc_value == 2:
+            options.add_argument("--window-size=1440,2960")  # resolution of pixel 3xl
+        else:
+            error('stepback() has an error, bozo')
     else:
-        options.add_argument(f"user-agent={desktop[randint(0, 2)]}")
+        options.add_argument(f"user-agent={desktop[acc_value]}")
+        options.add_argument("--window-size=1920,1080")
 
     preference = {
         "profile.default_content_setting_values.geolocation": 2,
@@ -110,7 +119,6 @@ def create_b_instance(mobile_instance: Literal[True, False]) -> w:
     options.add_experimental_option("useAutomationExtension", False)
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option('excludeSwitches', ['enable-logging'])
-
     if psys() == 'Linux':
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
@@ -210,7 +218,7 @@ def cp(text: str, colour: Literal["red", "green", "yellow", "blue", "purple"], w
         log["other"] += text
 
 
-def error(text, showtime: bool = True, showlinenumber: bool = True, finishprocess: bool = False, exit_code: int = 0, log_error: bool = True):
+def error(text, showtime: bool = True, showlinenumber: bool = True, finishprocess: bool = False, exit_code: int = 0, log_error: bool = True, wait_time: bool = True):
     result = f'Error: {text}'
 
     if showlinenumber:
@@ -887,6 +895,26 @@ def write_json(new_data: dict, filename='logs.json'):
         json.dump(file_data, file, indent=4)
 
 
+def stepback(number: int, maximum: int) -> int:
+    """if number is higher than x return back to 0 and repeat.
+    eg. if number = 7 and maximum = 2 the result is 1
+    because 0 1 2  0 1 2  0 1  (it's starting at 0)"""
+    iteration, result = 0, 0
+    if number <= maximum:
+        return number
+
+    if number <= 0:
+        return 0
+
+    for _ in range(0, number):
+        if result == maximum:
+            result = 0
+        else:
+            result += 1
+
+    return result
+
+
 class Timer:
     def __init__(self):
         self.timer_start = 0
@@ -1071,7 +1099,7 @@ def main(u: int):
 
         wait(5)
 
-    desktop()
+    # desktop()
     mobile()
 
 
@@ -1102,13 +1130,13 @@ if __name__ == '__main__':
             daily_points=json['calculate time config']['estimated daily points'])
     else:
         try:
-            for mainuserid in range(0, accounts):
+            for mainuserid in range(2, accounts):
                 main(mainuserid)
         except KeyboardInterrupt:
             keyboardinterupt = True
             error("M$ Rewards stopped. (Keyboard Interrupt)", showtime=False, showlinenumber=False, finishprocess=True)
         else:
-            error("lmao something went wrong", finishprocess=True)
+            error("lmao something went wrong", finishprocess=True, wait_time=False)
 
         if args.logs:
             cp('Attempting to write logs', "yellow")
