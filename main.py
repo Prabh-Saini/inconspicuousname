@@ -20,7 +20,7 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait as WDWait
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
 
-q = \
+no = \
     "███╗   ███╗▄▄███▄▄·    ██████╗ ███████╗██╗    ██╗ █████╗ ██████╗ ██████╗ ███████╗" \
     "████╗ ████║██╔════╝    ██╔══██╗██╔════╝██║    ██║██╔══██╗██╔══██╗██╔══██╗██╔════╝" \
     "██╔████╔██║███████╗    ██████╔╝█████╗  ██║ █╗ ██║███████║██████╔╝██║  ██║███████╗" \
@@ -36,7 +36,7 @@ credentials_file = 'credentials.json'  # If you downloaded the source files, no 
 #####################
 #  ADVANCED CONFIG  #
 #####################
-version = "9.9.9 BETA"
+version = "1.0.0"
 options = Options()
 json = load(open(credentials_file))
 credentials = []
@@ -98,8 +98,6 @@ def create_b_instance(mobile_instance: Literal[True, False]) -> w:
             options.add_argument("--window-size=2778,1284")  # resolution of iphone 13 pro max
         elif acc_value == 2:
             options.add_argument("--window-size=1440,2960")  # resolution of pixel 3xl
-        else:
-            error('stepback() has an error, bozo')
     else:
         options.add_argument(f"user-agent={desktop[acc_value]}")
         options.add_argument("--window-size=1920,1080")
@@ -218,7 +216,8 @@ def cp(text: str, colour: Literal["red", "green", "yellow", "blue", "purple"], w
         log["other"] += text
 
 
-def error(text, showtime: bool = True, showlinenumber: bool = True, finishprocess: bool = False, exit_code: int = 0, log_error: bool = True, wait_time: bool = True):
+def error(text, showtime: bool = True, showlinenumber: bool = True, finishprocess: bool = False, exit_code: int = 0,
+          log_error: bool = True):
     result = f'Error: {text}'
 
     if showlinenumber:
@@ -286,7 +285,7 @@ def check_points(b: w, userid: int, prettyprint: bool = True) -> int:
 def logo(legend: bool):
     cp("\n\n███╗   ███╗▄▄███▄▄·    ██████╗ ███████╗██╗    ██╗ █████╗ ██████╗ ██████╗ ███████╗\n████╗ ████║██╔════╝    ██╔══██╗██╔════╝██║    ██║██╔══██╗██╔══██╗██╔══██╗██╔════╝\n██╔████╔██║███████╗    ██████╔╝█████╗  ██║ █╗ ██║███████║██████╔╝██║  ██║███████╗\n██║╚██╔╝██║╚════██║    ██╔══██╗██╔══╝  ██║███╗██║██╔══██║██╔══██╗██║  ██║╚════██║\n██║ ╚═╝ ██║███████║    ██║  ██║███████╗╚███╔███╔╝██║  ██║██║  ██║██████╔╝███████║\n╚═╝     ╚═╝╚═▀▀▀══╝    ╚═╝  ╚═╝╚══════╝ ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝",
        "green")
-    cp(f"By @Opensourceisgod on Github. V{version}", "blue")
+    cp(f"By @Opensourceisgod on Github. v{version}", "blue")
     if legend:
         print("Legend: \033[91m[ERROR] \033[92m[SUCCESS] \033[93m[ATTEMPT] \033[95m[INFO]\n\n")
     log["time"] = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
@@ -314,7 +313,8 @@ def complete_daily_set(b: w, userid: int):
                     cp(f'[INFO] Completing daily set {str(card_number)} (quiz)', "purple")
                     daily_set_quiz(card_number, b=b, userid=userid)
                 elif activity['pointProgressMax'] == 10 and activity['pointProgress'] == 0:
-                    search_url = urllib.parse.unquote(urllib.parse.parse_qs(urllib.parse.urlparse(activity['destinationUrl']).query)['ru'][0])
+                    search_url = urllib.parse.unquote(
+                        urllib.parse.parse_qs(urllib.parse.urlparse(activity['destinationUrl']).query)['ru'][0])
                     search_url_query = urllib.parse.parse_qs(urllib.parse.urlparse(search_url).query)
                     filters = {}
                     for f in search_url_query['filters'][0].split(" "):
@@ -835,7 +835,6 @@ def another_stupid_sign_in(userid: int, b: w):
     b.execute_script(f'window.location.href = "https://bing.com/?q={sa[randint(0, 9999)]}";')
     wait(2)
     logged_in_account = b.find_element(By.ID, 'id_n').text
-    print(userid)
     if logged_in_account.lower().replace(" ", "") in gd(userid):
         return
     else:
@@ -887,10 +886,10 @@ def calculate(microsoft_gift_card: bool, purchase_cost: int, acc: int, daily_poi
         error("invalid account number")
 
 
-def write_json(new_data: dict, filename='logs.json'):
+def write_json(new_data: dict, filename='logs.json', json_object: str = "logs"):
     with open(filename, 'r+') as file:
         file_data = json.load(file)
-        file_data["logs"].append(new_data)
+        file_data[json_object].append(new_data)
         file.seek(0)
         json.dump(file_data, file, indent=4)
 
@@ -1099,7 +1098,7 @@ def main(u: int):
 
         wait(5)
 
-    # desktop()
+    desktop()
     mobile()
 
 
@@ -1123,20 +1122,20 @@ if __name__ == '__main__':
 
     if args.calculatetime:
         calculate(
-            microsoft_gift_card=json['calculate time config']['redeem_microsoft_gift_card?'],
+            microsoft_gift_card=json['calculate time config']['redeem as microsoft gift card?'],
             purchase_cost=json['calculate time config'][
                 "How much does it cost to buy your item"],
             acc=json['config']['How many accounts are you using?'],
             daily_points=json['calculate time config']['estimated daily points'])
     else:
         try:
-            for mainuserid in range(2, accounts):
+            for mainuserid in range(0, accounts):
                 main(mainuserid)
         except KeyboardInterrupt:
             keyboardinterupt = True
             error("M$ Rewards stopped. (Keyboard Interrupt)", showtime=False, showlinenumber=False, finishprocess=True)
         else:
-            error("lmao something went wrong", finishprocess=True, wait_time=False)
+            error("lmao something went wrong", finishprocess=True)
 
         if args.logs:
             cp('Attempting to write logs', "yellow")
