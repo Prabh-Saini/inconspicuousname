@@ -1,3 +1,5 @@
+# rewards login back up
+# mobile auto sign in 
 import argparse
 import urllib.parse
 from datetime import datetime
@@ -158,9 +160,7 @@ def login(userid: int, b: w):
     if b.title == "We're updating our terms" or element_exist(By.ID, 'iAccrualForm', b=b):
         WDWait(b, 100).until(ec.element_to_be_clickable((By.ID, 'iNext'))).click()
 
-    if b.title == "Your account has been temporarily suspended" or element_exist(By.CLASS_NAME,
-                                                                                 "serviceAbusePageContainer  PageContainer",
-                                                                                 b=b):
+    if b.title == "Your account has been temporarily suspended" or element_exist(By.CLASS_NAME, "serviceAbusePageContainer  PageContainer", b=b):
         error("Account Suspended", showlinenumber=False, finishprocess=True)
 
     if b.title == "Help us protect your account":
@@ -256,9 +256,8 @@ def gd(uid: int, opt: Literal["username", "password"] = "username") -> str:  # g
     return str(credentials[uid][opt])
 
 
-def dashboard_data(b: w, open_link: bool = True) -> dict:
-    if open_link:
-        b.execute_script(f'window.location.href = "https://rewards.microsoft.com/"')
+def dashboard_data(b: w) -> dict:
+    b.execute_script(f'window.location.href = "https://rewards.bing.com/?signin=1"')
     f, l, s = "var dashboard = ", ";\n        appDataModule.constant(\"prefetchedDashboard\", dashboard);", b.find_element(
         By.XPATH, '/html/body').get_attribute('innerHTML')
     try:
@@ -300,7 +299,7 @@ def complete_daily_set(b: w, userid: int):
             todaypack = data
     for activity in todaypack:
         if not activity['complete']:
-            card_number: int = int(activity['offerId'][-1:])
+            card_number = int(activity['offerId'][-1:])
             if activity['promotionType'] == "urlreward":
                 cp(f'[INFO] Completing daily set {str(card_number)} (search)', "purple")
                 daily_set_search(card_number, b, userid=userid)
@@ -308,8 +307,7 @@ def complete_daily_set(b: w, userid: int):
                 if activity['pointProgressMax'] == 50 and activity['pointProgress'] == 0:
                     cp(f'[INFO] Completing daily set {str(card_number)} (this or that)', "purple")
                     daily_set_this_or_that(card_number, b, userid)
-                elif (activity['pointProgressMax'] == 40 or activity['pointProgressMax'] == 30) and activity[
-                    'pointProgress'] == 0:
+                elif (activity['pointProgressMax'] == 40 or activity['pointProgressMax'] == 30) and activity['pointProgress'] == 0:
                     cp(f'[INFO] Completing daily set {str(card_number)} (quiz)', "purple")
                     daily_set_quiz(card_number, b=b, userid=userid)
                 elif activity['pointProgressMax'] == 10 and activity['pointProgress'] == 0:
@@ -566,7 +564,7 @@ def wait_until_q_loads(b: w, quiz_question: Literal["quiz", "questions"] = "quiz
             if quiz_question == "quiz":
                 b.find_element(By.XPATH, '//*[@id="currentQuestionContainer"]')
             elif quiz_question == "questions":
-                b.find_elements(By.CLASS_NAME, 'rqECredits')
+                b.find_elements(By.CLASS_NAME, 'rqECredits')[0]
             return True
         except Exception as e:
             error(e)
@@ -820,7 +818,7 @@ def mobile_sign_in(userid: int, b: w):
     b.find_element(By.ID, 'mHamburger').click()  # //*[@id="mHamburger"]
     wait(1)
     logged_in_account = b.find_element(By.ID, 'hb_n').text
-    if logged_in_account.lower().replace(" ", "") in gd(userid, "username"):
+    if logged_in_account.lower().replace(" ", "") in gd(userid, "username"):  # or not element_exist(By.ID, 'hb_s', b=b):
         return
     else:
         WDWait(b, 100).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="id_prov_cont"]'))).click()
@@ -835,6 +833,7 @@ def another_stupid_sign_in(userid: int, b: w):
     b.execute_script(f'window.location.href = "https://bing.com/?q={sa[randint(0, 9999)]}";')
     wait(2)
     logged_in_account = b.find_element(By.ID, 'id_n').text
+    
     if logged_in_account.lower().replace(" ", "") in gd(userid):
         return
     else:
@@ -848,7 +847,7 @@ def another_stupid_sign_in(userid: int, b: w):
     # another back up in case when going to rewards.ms.com it goes to the welcome page instead of login because
     # it is stupid like that >:(
     wait(2)
-    b.execute_script('window.location.href = "https://rewards.microsoft.com"')
+    b.execute_script('window.location.href = "https://rewards.bing.com/?signin=1"')
     wait(3)
     if "/welcome" in b.current_url:
         wait(3)
@@ -1129,7 +1128,7 @@ if __name__ == '__main__':
             daily_points=json['calculate time config']['estimated daily points'])
     else:
         try:
-            for mainuserid in range(0, accounts):
+            for mainuserid in range(2, accounts):
                 main(mainuserid)
         except KeyboardInterrupt:
             keyboardinterupt = True
