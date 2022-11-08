@@ -1,5 +1,5 @@
 # M$ Rewards
-A selenium-python program that literally makes you money! 
+A Selenium based automatic Microsoft Rewards bot that literally makes you money! 
 ## Disclaimer
 I am not responsible for your account(s). This program is a use at your own risk, Microsoft holds the right to lock, or ban your account.
 ## Features
