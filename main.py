@@ -1,10 +1,10 @@
-# rewards login back up
-# mobile auto sign in 
+# rewards login back up - should work now?
+# mobile auto sign in back up
 import argparse
 import urllib.parse
 from datetime import datetime
 from inspect import currentframe
-from json import load, loads
+from json import load, loads, JSONDecodeError
 from math import ceil as c
 from platform import system as psys
 from random import randint
@@ -22,7 +22,7 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait as WDWait
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
 
-no = \
+_ = \
     "███╗   ███╗▄▄███▄▄·    ██████╗ ███████╗██╗    ██╗ █████╗ ██████╗ ██████╗ ███████╗" \
     "████╗ ████║██╔════╝    ██╔══██╗██╔════╝██║    ██║██╔══██╗██╔══██╗██╔══██╗██╔════╝" \
     "██╔████╔██║███████╗    ██████╔╝█████╗  ██║ █╗ ██║███████║██████╔╝██║  ██║███████╗" \
@@ -38,14 +38,20 @@ credentials_file = 'credentials.json'  # If you downloaded the source files, no 
 #####################
 #  ADVANCED CONFIG  #
 #####################
-version = "1.0.0"
+version = "9.6 Beta"
 options = Options()
-json = load(open(credentials_file))
+global json, accounts, tacos, verify_request
+try:
+    json = load(open(credentials_file))
+    accounts = json['config']['How many accounts are you using?']
+    tacos = json['config']['Do you like tacos?']
+    verify_request = json['config']['verify request']
+except JSONDecodeError:
+    print("\033Error: JSON Failed to decode. Your credentials.json is likely incorrectly configured. Try remaking one by us"
+          "ing the template on the github page.\033[00m")
+    exit("JSONDecodeError")
 credentials = []
 system = psys()
-accounts = json['config']['How many accounts are you using?']
-tacos = json['config']['Do you like tacos?']
-verify_request = json['config']['verify request']
 sa: list
 log_name = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
 email = (By.ID, "i0116")
@@ -59,19 +65,18 @@ parser.add_argument('--logs', dest='logs', default=False, action='store_true',
                     help='Logs, recommended if you would like to keep a record of the bot to make sure it has been working daily.')
 parser.add_argument('--calculatetime', dest='calculatetime', default=False, action='store_true',
                     help='M$ Calculator is a way to calculate how long it will take to purchase an item using M$ Rewards. To use M$ Calculator, you want to change credentials json according to README.md')
+parser.add_argument('--fast', dest='fast', default=False, action='store_true',
+                    help="Complete script faster. Generally saves about ~10 minutes per account")
 parser.add_argument('--bat', dest='bat', default=False, action='store_true',
                     help='If your running from bat script (not neccersary though)')
 args = parser.parse_args()
+
 if not args.calculatetime:
-    sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000", verify=verify_request).text.splitlines()
-log = {"time": "",
-       "version": "",
-       "account_balance": [0, 0],
-       "delay": False,
-       "errors": [],
-       "warnings": [],
-       "other": []
-       }
+    try:
+        sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000", verify=verify_request).text.splitlines()
+    except requests.exceptions.RequestException:
+        print('\033[91m[ERROR] Failed to load word list, try changing "verify request" in credentials.json\033[00m"')
+        exit(1)
 for i in json['credentials']:
     credentials.append(i)
 
@@ -79,7 +84,7 @@ for i in json['credentials']:
 ###############
 #  Functions  #
 ###############
-def create_b_instance(mobile_instance: Literal[True, False]) -> w:
+def create_b_instance(mobile_instance: bool) -> w:
     desktop = [
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36 Edg/105.0.1343.53',
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36 Edg/106.0.1370.34',
@@ -127,34 +132,35 @@ def create_b_instance(mobile_instance: Literal[True, False]) -> w:
     webdriver_path = json['config']['webdriver location']
 
     if webdriver_path.endswith(".exe"):
-        b = w.Edge(service=Service(webdriver_path), options=options)
+        try:
+            b = w.Edge(service=Service(webdriver_path), options=options)
+            b.get('https://login.live.com/')
+            return b
+        except Exception as e:
+            error(str(e) + "\nThis error was likely caused by an outdated webdriver, try updating it to the latest version at https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/.", finishprocess=True, exit_code=69)
     else:
         warn(
             'The specified webdriver path in credentials.json is invalid. If M$ Rewards is still working you can avoid this warning, otherwise follow the steps below.'
             '1. Go to C: in file explorer'
             '2. Create a folder called "Utility" (this does not require administrator)'
             '3. Download the latest msedgedriver at https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/ and place the file in C://Utility'
-            '4. Open credentials.json and paste in "C://Webdrivers/msedgedriver.exe"',
-            False)
-
-        b = w.Edge(service=Service(EdgeChromiumDriverManager().install()), options=options)
-
-    return b
+            '4. Open credentials.json and paste in "C://Webdrivers/msedgedriver.exe"')
+        try:
+            b = w.Edge(service=Service(EdgeChromiumDriverManager().install()), options=options)
+            b.get('https://login.live.com/')
+            return b
+        except Exception as e:
+            error(str(e) + "\nThis error was caused by an error in automatic webdriver installation, try manually downloading it at the link above and make sure to change its path directory in credentials.json", finishprocess=True, exit_code=1)
+    wait(2)
 
 
 def login(userid: int, b: w):
-    b.get('https://login.live.com/')
     cp(f"Attempting to log in to {gd(userid)}.", "yellow")
-
-    wait(1)
+    wait(5)
     WDWait(b, 100).until(ec.element_to_be_clickable(email)).send_keys(gd(userid))
-    wait(1)
     WDWait(b, 100).until(ec.element_to_be_clickable(next_button)).click()
-    wait(1)
     WDWait(b, 100).until(ec.element_to_be_clickable(password)).send_keys(gd(userid, "password"))
-    wait(1)
     WDWait(b, 100).until(ec.element_to_be_clickable(next_button)).click()
-    wait(2)
 
     # checks
     if b.title == "We're updating our terms" or element_exist(By.ID, 'iAccrualForm', b=b):
@@ -176,17 +182,18 @@ def logout(userid: int, b: w):
     b.execute_script(f'window.location.href = "https://rewards.bing.com/Signout";')
     cp(f"Successfully logged out of {gd(userid)}.", "green")
     b.execute_script(f'window.location.href = "https://rewards.bing.com/Signout";')
-    wait(randint(15, 20))
+    wait(randint(10, 17) if not args.fast else randint(4, 7))
 
 
 def search(searches: int, b: w, userid: int):
+    search_range = range(1, randint(searches + 1, searches + 10) + 1) if not args.fast else range(0, searches)
     try:
-        for abcdefghijklmnopqrstuvwxyz in range(1, randint(searches + 1, searches + 10) + 1):
+        for _ in search_range:
             d = randint(0, len(sa) - 1)
             b.execute_script(f'window.location.href = "https://bing.com/?q={sa[d]}";')  # haha sad
             sign_in(b, userid)
             sa.pop(d)
-            wait(randint(4, 7))
+            wait(randint(4, 7) if not args.fast else randint(1, 3))
     except Exception as e:
         error(e)
         try:
@@ -194,14 +201,14 @@ def search(searches: int, b: w, userid: int):
             b.execute_script(f'window.location.href = "https://bing.com/?q={sa[d]}";')  # haha sad v2
             sign_in(b, userid)
             sa.pop(d)
-            wait(randint(4, 11))
+            wait(randint(4, 7) if not args.fast else randint(1, 3))
         except Exception as e:
             error(e)
 
-    wait(randint(34, 64))
+    wait(10)
 
 
-def cp(text: str, colour: Literal["red", "green", "yellow", "blue", "purple"], write_log: bool = False) -> None:
+def cp(text: str, colour: Literal["red", "green", "yellow", "blue", "purple"]) -> None:
     if colour == "red":
         print(f"\033[91m{text}\033[00m")
     elif colour == "green":
@@ -212,29 +219,26 @@ def cp(text: str, colour: Literal["red", "green", "yellow", "blue", "purple"], w
         print(f"\033[94m{text}\033[00m")
     elif colour == "purple":
         print(f"\033[95m{text}\033[00m")
-    if write_log:
-        log["other"] += text
 
 
-def error(text, showtime: bool = True, showlinenumber: bool = True, finishprocess: bool = False, exit_code: int = 0,
-          log_error: bool = True):
+def error(text, show_time: bool = True, showlinenumber: bool = True, finishprocess: bool = False, exit_code: int = 0):
     result = f'Error: {text}'
 
     if showlinenumber:
         result += f"\n  -> Line Number: {currentframe().f_back.f_lineno}"
 
-    if showtime:
+    if show_time:
         result += f"\n  -> Current Time: {datetime.now().strftime('%H:%M:%S')}"
 
     cp(result, "red")
 
-    if log_error:
-        log["errors"] += result
-
     if finishprocess:
-        cp('M$ Rewards closing in five seconds...', 'red')
-        wait(5)
-        exit(exit_code)
+        try:
+            cp('M$ Rewards closing in five seconds...', 'red')
+            wait(5)
+            exit(exit_code)
+        except KeyboardInterrupt:
+            cp('Force exit', "red")
 
 
 def element_exist(by: By, element: str, b: w) -> bool:
@@ -246,10 +250,8 @@ def element_exist(by: By, element: str, b: w) -> bool:
     return True
 
 
-def warn(text: str, log_warn: bool = True):
+def warn(text: str):
     cp(f"[WARNING] {text}", "yellow")
-    if log_warn:
-        log["warnings"] += text
 
 
 def gd(uid: int, opt: Literal["username", "password"] = "username") -> str:  # gd = get details :)
@@ -287,8 +289,6 @@ def logo(legend: bool):
     cp(f"By @Opensourceisgod on Github. v{version}", "blue")
     if legend:
         print("Legend: \033[91m[ERROR] \033[92m[SUCCESS] \033[93m[ATTEMPT] \033[95m[INFO]\n\n")
-    log["time"] = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
-    log["version"] = version
 
 
 def complete_daily_set(b: w, userid: int):
@@ -334,7 +334,7 @@ def daily_set_search(card_number: int, b: w, userid: int):
     b.switch_to.window(window_name=b.window_handles[1])
     sign_in(b, userid)
     wait(4)
-    b.close()
+    b.close()  # todo: potential issue
     wait(2)
     b.switch_to.window(window_name=b.window_handles[0])
     wait(2)
@@ -497,10 +497,10 @@ def daily_set_this_or_that(card_number: int, b: w, userid: int):
     b.switch_to.window(window_name=b.window_handles[1])
     sign_in(b, userid)
     wait(15)
-    # Accept cookie popup
-    if element_exist(By.ID, 'bnp_container', b=b):
+    if element_exist(By.ID, 'bnp_container', b=b):  # Accept cookie popup
         b.find_element(By.ID, 'bnp_btn_accept').click()
         wait(2)
+
     if not wait_until_q_loads(b=b):
         cu = b.current_window_handle
         for handle in b.window_handles:
@@ -513,17 +513,17 @@ def daily_set_this_or_that(card_number: int, b: w, userid: int):
         wait(0.5)
         b.get('https://rewards.microsoft.com/')
         return
+
     b.find_element(By.XPATH, '//*[@id="rqStartQuiz"]').click()
     WDWait(b, 10).until(ec.visibility_of_element_located((By.XPATH, '//*[@id="currentQuestionContainer"]/div/div[1]')))
     wait(5)
+
     for question in range(10):
-        # Click on later on Bing wallpaper app popup
-        if element_exist(By.ID, 'b_notificationContainer_bop', b=b):
+        if element_exist(By.ID, 'b_notificationContainer_bop', b=b):  # Click on later on Bing wallpaper app popup
             b.find_element(By.ID, 'bnp_hfly_cta2').click()
             wait(2)
 
         answer_encode_key = b.execute_script("return _G.IG")
-
         answer1 = b.find_element(By.ID, "rqAnswerOption0")
         a1title = answer1.get_attribute('data-option')
         a1code = get_answer_code(answer_encode_key, a1title)
@@ -815,43 +815,64 @@ def sign_in(b: w, userid: int) -> None:
 def mobile_sign_in(userid: int, b: w):
     b.execute_script(f'window.location.href = "https://bing.com/?q={sa[randint(0, len(sa) - 1)]}";')
     wait(2)
-    b.find_element(By.ID, 'mHamburger').click()  # //*[@id="mHamburger"]
-    wait(1)
-    logged_in_account = b.find_element(By.ID, 'hb_n').text
-    if logged_in_account.lower().replace(" ", "") in gd(userid, "username"):  # or not element_exist(By.ID, 'hb_s', b=b):
+    b.find_element(By.ID, 'mHamburger').click()
+    wait(5)
+
+    try:
+        WDWait(b, 100).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="HBSignIn"]/a[1]'))).click()
+    except NoSuchElementException:
         return
-    else:
-        WDWait(b, 100).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="id_prov_cont"]'))).click()
-        wait(0.5)
-        WDWait(b, 100).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="hb_idproviders"]/a'))).click()
-        wait(4)
-        cp('[INFO] Bing did not automatically connect to your specified M$ Rewards account, it has automatically been resolved now.',
-           "purple")
+
+    try:
+        if b.find_element(By.ID, 'hb_n').text.lower().replace(" ", "") in gd(userid, "username"):  # or not element_exist(By.ID, 'hb_s', b=b):
+            return
+        else:
+            WDWait(b, 100).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="id_prov_cont"]'))).click()
+            wait(0.5)
+            WDWait(b, 100).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="hb_idproviders"]/a'))).click()
+            wait(4)
+            cp('[INFO] Bing did not automatically connect to your specified M$ Rewards account, it has automatically been resolved now.',
+               "purple")
+    except NoSuchElementException:
+        pass
 
 
 def another_stupid_sign_in(userid: int, b: w):
     b.execute_script(f'window.location.href = "https://bing.com/?q={sa[randint(0, 9999)]}";')
     wait(2)
-    logged_in_account = b.find_element(By.ID, 'id_n').text
-    
-    if logged_in_account.lower().replace(" ", "") in gd(userid):
-        return
-    else:
-        WDWait(b, 100).until(ec.element_to_be_clickable((By.ID, 'id_n'))).click()
-        wait(0.5)
-        WDWait(b, 100).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="b_idProviders"]/li[1]/a/span[2]'))).click()
-        wait(4)
-        cp('[INFO] Bing did not automatically connect to your specified M$ Rewards account, it has automatically been resolved now.',
-           "purple")
-        b.switch_to.window(window_name=b.window_handles[0])
-    # another back up in case when going to rewards.ms.com it goes to the welcome page instead of login because
-    # it is stupid like that >:(
+
+    try:
+        if b.find_element(By.ID, 'id_s').text == "Sign in":
+            WDWait(b, 100).until(ec.element_to_be_clickable((By.ID, 'id_s'))).click()
+    except NoSuchElementException:
+        pass
+
+    try:
+        logged_in_account = b.find_element(By.ID, 'id_n').text
+        if logged_in_account.lower().replace(" ", "") in gd(userid):
+            return
+        else:
+            WDWait(b, 100).until(ec.element_to_be_clickable((By.ID, 'id_n'))).click()
+            wait(0.5)
+            WDWait(b, 100).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="b_idProviders"]/li[1]/a/span[2]'))).click()
+            wait(4)
+            cp('[INFO] Bing did not automatically connect to your specified M$ Rewards account, it has automatically been resolved now.',
+               "purple")
+            b.switch_to.window(window_name=b.window_handles[0])
+    except NoSuchElementException:
+        pass
+
     wait(2)
     b.execute_script('window.location.href = "https://rewards.bing.com/?signin=1"')
     wait(3)
+
     if "/welcome" in b.current_url:
         wait(3)
         WDWait(b, 100).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="start-earning-rewards-link"]'))).click()
+        try:
+            login(userid, b)
+        except NoSuchElementException:
+            pass
         cp('[INFO] Microsoft Rewards did not automatically connect to your specified M$ Rewards account, it has automatically been resolved now.',
            "purple")
 
@@ -883,14 +904,6 @@ def calculate(microsoft_gift_card: bool, purchase_cost: int, acc: int, daily_poi
         return estimated_time
     else:
         error("invalid account number")
-
-
-def write_json(new_data: dict, filename='logs.json', json_object: str = "logs"):
-    with open(filename, 'r+') as file:
-        file_data = json.load(file)
-        file_data[json_object].append(new_data)
-        file.seek(0)
-        json.dump(file_data, file, indent=4)
 
 
 def stepback(number: int, maximum: int) -> int:
@@ -930,6 +943,7 @@ class Timer:
         """Print Result"""
         if self.timer_end == 0:
             self.timer_end = time()
+
         if self.timer_start == 0:
             return error("Timer.start() non-existant. Start the timer stupid.")
         secs = self.timer_end - self.timer_start
@@ -972,16 +986,7 @@ def main(u: int):
             except Exception as e:
                 error(e)
 
-        wait(30)
-
-        try:
-            log["account_balance"][0] += check_points(b, u)
-        except Exception as e:
-            error(e)
-            try:
-                log["account_balance"][0] += check_points(b, u)
-            except Exception as e:
-                error(e)
+        wait(60 if not args.fast else 10)
 
         try:
             complete_daily_set(b, u)
@@ -992,7 +997,7 @@ def main(u: int):
             except Exception as e:
                 error(e)
 
-        wait(60)
+        wait(60 if not args.fast else 10)
 
         try:
             complete_punch_cards(b)
@@ -1003,7 +1008,7 @@ def main(u: int):
             except Exception as e:
                 error(e)
 
-        wait(60)
+        wait(60 if not args.fast else 10)
 
         try:
             complete_more_promotions(b=b)
@@ -1014,18 +1019,9 @@ def main(u: int):
             except Exception as e:
                 error(e)
 
-        wait(60)
+        wait(60 if not args.fast else 10)
         search(34, b, u)
         wait(20)
-
-        try:
-            log["account_balance"][1] += check_points(b, u)
-        except Exception as e:
-            error(e)
-            try:
-                log["account_balance"][1] += check_points(b, u)
-            except Exception as e:
-                error(e)
 
         try:
             logout(u, b)
@@ -1074,7 +1070,7 @@ def main(u: int):
 
         wait(5)
         search(30, b, u)
-        wait(20)
+        wait(60 if not args.fast else 10)
 
         try:
             logout(u, b)
@@ -1102,19 +1098,21 @@ def main(u: int):
 
 
 if __name__ == '__main__':
-    logo(True if not args.calculatetime else False)
+    logo(False if args.calculatetime else True)
     timer = Timer()
     timer.start()
 
     if args.bat:
         cp("[INFO] Running from .bat", "purple")
 
+    if args.fast:
+        cp("[INFO] Fast mode enabled", "purple")
+
     if tacos != "yes":
         error("You do not like tacos. Script will not run until you fix your opinion in credentials.json",
               finishprocess=True)
 
     if args.delay:
-        log['delay'] = True
         delay = randint(1, 30)
         cp(f"[INFO] Delay Enabled (Delayed for {delay} minutes.)", "purple")
         wait(delay)
@@ -1128,24 +1126,20 @@ if __name__ == '__main__':
             daily_points=json['calculate time config']['estimated daily points'])
     else:
         try:
-            for mainuserid in range(2, accounts):
+            for mainuserid in range(0, accounts):
                 main(mainuserid)
         except KeyboardInterrupt:
             keyboardinterupt = True
-            error("M$ Rewards stopped. (Keyboard Interrupt)", showtime=False, showlinenumber=False, finishprocess=True)
-        else:
-            error("lmao something went wrong", finishprocess=True)
+            error("M$ Rewards stopped. (Keyboard Interrupt)", showlinenumber=False, finishprocess=True)
 
         if args.logs:
             cp('Attempting to write logs', "yellow")
             try:
-                write_json(log)
                 cp('Successfully written to logs.json.', "green")
             except Exception as log_e:
                 error(log_e)
                 cp('Failed to write logs, retrying...', "yellow")
                 try:
-                    write_json(log)
                     cp('Successfully written to logs.json.', "green")
                 except Exception as log_e:
                     error(log_e)
