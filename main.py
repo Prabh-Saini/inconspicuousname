@@ -38,7 +38,7 @@ credentials_file = 'credentials.json'  # If you downloaded the source files, no 
 #####################
 #  ADVANCED CONFIG  #
 #####################
-version = "1.0.0"
+version = "9.6 Beta"
 options = Options()
 global json, accounts, tacos, verify_request
 try:
