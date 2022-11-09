@@ -4,6 +4,7 @@ A Selenium based automatic Microsoft Rewards bot that literally makes you money!
 I am not responsible for your account(s). This program is a use at your own risk, Microsoft holds the right to lock, or ban your account.
 ## Features
 M$ Rewards has many features including:
+* DOES NOT REQUIRE WINDOWS 10 ADMINISTRATOR (read below)
 * Automatic Mobile search
 * Automatic Desktop search
 * Automatic Daily set completion
@@ -33,7 +34,7 @@ To add, change, or remove microsoft acccounts, open "credentials.json", and chan
 You want to put in your microsoft email in the "username" section. IMPORTANTLY, make sure the email you are using has an attached microsoft account. And obviously put your password in the "password" section. To make sure M$ Rewards works correctly on all of your accounts, make sure to edit config inside credentials.json.
 ```
 "config": {
-  "How many accounts are you using?": 3,
+  "How many accounts are you using?": 1,
   ...
 },
 ```
@@ -50,10 +51,9 @@ This process can be streamlined on windows by downloading python, right clicking
 ## M$ Calculator
 M$ Calculator is a way to calculate how long it will take to purchase an item using M$ Rewards. To use M$ Calculator, you want to change credentials json to:
 ```
-  "calculate time config": {
-    "redeem_microsoft_gift_card?": "no",
-    "how much does it cost to buy your item in $": 100
-  }
+  ...
+    "how much does it cost to buy your item": 99.98
+  ...
 ```
 The first option you must answer is "redeem_microsoft_gift_card?", which basically means, can the product you want to buy be bought on the Microsoft or Xbox store? If so, type in "yes", if not enter in "no". The second option is "how much does it cost to buy your item in ", which self explaintory-ly asks how expensive is the product you wish to purchase. To run M$ Calculator, use the command down below.
 ``` 
@@ -61,7 +61,7 @@ python main.py --calculatetime
 ```
 It will return an result that should look something like this:
 ``` 
-It is estimated that it will take 206 days to get 20 $5 gift cards (7 giftcards on each of the 3 accounts) to purchase your item that costs $100, leaving you an excess giftcard value of $5!
+It is estimated that it will take 206 days to get 20 $5 gift cards (7 giftcards on each of the 3 accounts) to purchase your item that costs $99.98, leaving you an excess giftcard value of $5.02!
 ```
 ## Credit
 Credit to [@charlesbel]("https://github.com/charlesbel") for originally coming up and developing the idea!
