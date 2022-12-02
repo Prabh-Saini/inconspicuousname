@@ -1,4 +1,3 @@
-## custom for noah
 # rewards login back up - should work
 import argparse
 import urllib.parse
@@ -138,6 +137,9 @@ def create_b_instance(mobile_instance: bool) -> webdriver:
 
     try:
         b = webdriver.Edge(service=Service(DriverManager().install()), options=options)
+        b.get(f'window.location.href = "https://rewards.bing.com/Signout";')
+        b.execute_script(f'window.location.href = "https://rewards.bing.com/Signout";')
+        wait(10)
         b.get('https://login.live.com/')
         return b
     except Exception as exception:
@@ -145,7 +147,7 @@ def create_b_instance(mobile_instance: bool) -> webdriver:
             str(exception) + "\nThis error was caused by an error in automatic webdriver installation, try manually downloading it at the link above and make sure to change its path directory in credentials.json",
             finishprocess=True, exit_code=1)
     wait(2)
-    
+
 
 def login(userid: int, b: webdriver):
     cp(f"Attempting to log in to {gd(userid)}.", "yellow")
