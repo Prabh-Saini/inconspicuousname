@@ -1,26 +1,28 @@
-# rewards login back up - should work now?
-# mobile auto sign in back up
+# rewards login back up - should work
 import argparse
 import urllib.parse
 from datetime import datetime
 from inspect import currentframe
 from json import load, loads, JSONDecodeError
-from math import ceil as c
-from platform import system as psys
+from math import ceil
+from os import system as systemwrite
+from platform import system as system_os
 from random import randint
-from sys import exit
+from sys import exit, stdout
 from time import sleep as wait
 from time import time
 from typing import Literal
+
 import requests
-from selenium import webdriver as w
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium import webdriver as webdriver
+from selenium.common.exceptions import NoSuchElementException, TimeoutException, NoSuchWindowException, \
+    ElementNotInteractableException, ElementClickInterceptedException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.edge.options import Options
 from selenium.webdriver.edge.service import Service
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait as WDWait
-from webdriver_manager.microsoft import EdgeChromiumDriverManager
+from webdriver_manager.microsoft import EdgeChromiumDriverManager as DriverManager
 
 _ = \
     "███╗   ███╗▄▄███▄▄·    ██████╗ ███████╗██╗    ██╗ █████╗ ██████╗ ██████╗ ███████╗" \
@@ -34,29 +36,33 @@ _ = \
 #  USER CONFIG  #
 #################
 credentials_file = 'credentials.json'  # If you downloaded the source files, no need to change this.
+skip: int = 0  # default: 0
+redundancy: int = 2  # default: 2
+cron: str = "HH:MM"  # when to run script daily in format of HH:MM eg. "15:30" = 5:30 pm or just don't use it because it's probably bugged
 
 #####################
 #  ADVANCED CONFIG  #
 #####################
-version = "9.6 Beta"
+version = "1.0.0"
 options = Options()
 global json, accounts, tacos, verify_request
+email = (By.ID, "i0116")
+password = (By.ID, "i0118")
+next_button = (By.ID, "idSIButton9")
 try:
     json = load(open(credentials_file))
     accounts = json['config']['How many accounts are you using?']
     tacos = json['config']['Do you like tacos?']
     verify_request = json['config']['verify request']
 except JSONDecodeError:
-    print("\033Error: JSON Failed to decode. Your credentials.json is likely incorrectly configured. Try remaking one by us"
-          "ing the template on the github page.\033[00m")
+    print(
+        "\033Error: JSON Failed to decode. Your credentials.json is likely incorrectly configured. Try remaking one by us"
+        "ing the template on the github page.\033[00m")
     exit("JSONDecodeError")
 credentials = []
-system = psys()
 sa: list
 log_name = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
-email = (By.ID, "i0116")
-password = (By.ID, "i0118")
-next_button = (By.ID, "idSIButton9")
+indexerror: int = 0
 keyboardinterupt = False
 parser = argparse.ArgumentParser(description='M$ Rewards')
 parser.add_argument('--delay', dest='delay', default=False, action='store_true',
@@ -70,7 +76,7 @@ parser.add_argument('--fast', dest='fast', default=False, action='store_true',
 parser.add_argument('--bat', dest='bat', default=False, action='store_true',
                     help='If your running from bat script (not neccersary though)')
 args = parser.parse_args()
-
+retries: int = 0
 if not args.calculatetime:
     try:
         sa = requests.get("https://www.mit.edu/~ecprice/wordlist.10000", verify=verify_request).text.splitlines()
@@ -84,18 +90,20 @@ for i in json['credentials']:
 ###############
 #  Functions  #
 ###############
-def create_b_instance(mobile_instance: bool) -> w:
+def create_b_instance(mobile_instance: bool) -> webdriver:
     desktop = [
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36 Edg/105.0.1343.53',
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36 Edg/106.0.1370.34',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36 Edg/106.0.1370.34']
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36 Edg/106.0.1370.34'
+    ]
 
     mobile = [
         'Mozilla/5.0 (iPhone; CPU iPhone OS 12_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.1 EdgiOS/44.5.0.10 Mobile/15E148 Safari/604.1',
         'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 EdgiOS/100.1185.50 Mobile/15E148 Safari/605.1.15',
-        'Mozilla/5.0 (Linux; Android 10; Pixel 3 XL) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.5249.79 Mobile Safari/537.36 EdgA/100.0.1185.50']
+        'Mozilla/5.0 (Linux; Android 10; Pixel 3 XL) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.5249.79 Mobile Safari/537.36 EdgA/100.0.1185.50'
+    ]
 
-    b: w
+    b: webdriver
     acc_value = stepback(accounts, 2)
     if mobile_instance:
         options.add_argument(f"user-agent={mobile[acc_value]}")
@@ -124,7 +132,7 @@ def create_b_instance(mobile_instance: bool) -> w:
     options.add_experimental_option("useAutomationExtension", False)
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option('excludeSwitches', ['enable-logging'])
-    if psys() == 'Linux':
+    if system_os() == 'Linux':
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         cp('[INFO] Linux detected, enabling "--no-sandbox" and "--disable-dev-shm-usage".', "purple")
@@ -133,11 +141,13 @@ def create_b_instance(mobile_instance: bool) -> w:
 
     if webdriver_path.endswith(".exe"):
         try:
-            b = w.Edge(service=Service(webdriver_path), options=options)
+            b = webdriver.Edge(service=Service(webdriver_path), options=options)
             b.get('https://login.live.com/')
             return b
-        except Exception as e:
-            error(str(e) + "\nThis error was likely caused by an outdated webdriver, try updating it to the latest version at https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/.", finishprocess=True, exit_code=69)
+        except Exception as exception:
+            error(
+                str(exception) + "\nThis error was likely caused by an outdated webdriver, try updating it to the latest version at https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/.",
+                finishprocess=True, exit_code=69)
     else:
         warn(
             'The specified webdriver path in credentials.json is invalid. If M$ Rewards is still working you can avoid this warning, otherwise follow the steps below.'
@@ -146,27 +156,34 @@ def create_b_instance(mobile_instance: bool) -> w:
             '3. Download the latest msedgedriver at https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/ and place the file in C://Utility'
             '4. Open credentials.json and paste in "C://Webdrivers/msedgedriver.exe"')
         try:
-            b = w.Edge(service=Service(EdgeChromiumDriverManager().install()), options=options)
+            b = webdriver.Edge(service=Service(DriverManager().install()), options=options)
             b.get('https://login.live.com/')
             return b
-        except Exception as e:
-            error(str(e) + "\nThis error was caused by an error in automatic webdriver installation, try manually downloading it at the link above and make sure to change its path directory in credentials.json", finishprocess=True, exit_code=1)
+        except Exception as exception:
+            error(
+                str(exception) + "\nThis error was caused by an error in automatic webdriver installation, try manually downloading it at the link above and make sure to change its path directory in credentials.json",
+                finishprocess=True, exit_code=1)
     wait(2)
 
 
-def login(userid: int, b: w):
+def login(userid: int, b: webdriver):
     cp(f"Attempting to log in to {gd(userid)}.", "yellow")
-    wait(5)
+    wait(2 if args.fast else 5)
     WDWait(b, 100).until(ec.element_to_be_clickable(email)).send_keys(gd(userid))
+    wait(2 if args.fast else 5)
     WDWait(b, 100).until(ec.element_to_be_clickable(next_button)).click()
+    wait(2 if args.fast else 5)
     WDWait(b, 100).until(ec.element_to_be_clickable(password)).send_keys(gd(userid, "password"))
+    wait(2 if args.fast else 5)
     WDWait(b, 100).until(ec.element_to_be_clickable(next_button)).click()
 
     # checks
     if b.title == "We're updating our terms" or element_exist(By.ID, 'iAccrualForm', b=b):
         WDWait(b, 100).until(ec.element_to_be_clickable((By.ID, 'iNext'))).click()
 
-    if b.title == "Your account has been temporarily suspended" or element_exist(By.CLASS_NAME, "serviceAbusePageContainer  PageContainer", b=b):
+    if b.title == "Your account has been temporarily suspended" or element_exist(By.CLASS_NAME,
+                                                                                 "serviceAbusePageContainer  PageContainer",
+                                                                                 b=b):
         error("Account Suspended", showlinenumber=False, finishprocess=True)
 
     if b.title == "Help us protect your account":
@@ -178,14 +195,14 @@ def login(userid: int, b: w):
     cp(f"Successfully logged into {gd(userid)}.", "green")
 
 
-def logout(userid: int, b: w):
+def logout(userid: int, b: webdriver):
     b.execute_script(f'window.location.href = "https://rewards.bing.com/Signout";')
     cp(f"Successfully logged out of {gd(userid)}.", "green")
     b.execute_script(f'window.location.href = "https://rewards.bing.com/Signout";')
     wait(randint(10, 17) if not args.fast else randint(4, 7))
 
 
-def search(searches: int, b: w, userid: int):
+def search(searches: int, b: webdriver, userid: int):
     search_range = range(1, randint(searches + 1, searches + 10) + 1) if not args.fast else range(0, searches)
     try:
         for _ in search_range:
@@ -194,16 +211,16 @@ def search(searches: int, b: w, userid: int):
             sign_in(b, userid)
             sa.pop(d)
             wait(randint(4, 7) if not args.fast else randint(1, 3))
-    except Exception as e:
-        error(e)
+    except Exception as exception:
+        error(exception)
         try:
             d = randint(0, len(sa) - 1)
             b.execute_script(f'window.location.href = "https://bing.com/?q={sa[d]}";')  # haha sad v2
             sign_in(b, userid)
             sa.pop(d)
             wait(randint(4, 7) if not args.fast else randint(1, 3))
-        except Exception as e:
-            error(e)
+        except Exception as exception:
+            error(exception)
 
     wait(10)
 
@@ -241,7 +258,7 @@ def error(text, show_time: bool = True, showlinenumber: bool = True, finishproce
             cp('Force exit', "red")
 
 
-def element_exist(by: By, element: str, b: w) -> bool:
+def element_exist(by: By, element: str, b: webdriver) -> bool:
     """if element exists, return true - had to write this because i will very quickly forget wtf im doing"""
     try:
         b.find_element(by, element)
@@ -254,11 +271,11 @@ def warn(text: str):
     cp(f"[WARNING] {text}", "yellow")
 
 
-def gd(uid: int, opt: Literal["username", "password"] = "username") -> str:  # gd = get details :)
-    return str(credentials[uid][opt])
+def gd(userid: int, opts: Literal["username", "password"] = "username") -> str:  # gd = get details :)
+    return str(credentials[userid][opts])
 
 
-def dashboard_data(b: w) -> dict:
+def dashboard_data(b: webdriver, userid: int) -> dict:
     b.execute_script(f'window.location.href = "https://rewards.bing.com/?signin=1"')
     f, l, s = "var dashboard = ", ";\n        appDataModule.constant(\"prefetchedDashboard\", dashboard);", b.find_element(
         By.XPATH, '/html/body').get_attribute('innerHTML')
@@ -266,12 +283,26 @@ def dashboard_data(b: w) -> dict:
         start = s.index(f) + len(f)
         end = s.index(l, start)
         return loads(s[start:end])
-    except ValueError:
-        return {}
+    except Exception as exception:
+        error(exception)
+        login(userid, b)
+        wait(2)
+        b.execute_script(f'window.location.href = "https://rewards.bing.com/?signin=1"')
+        wait(5)
+        try:
+            start = s.index(f) + len(f)
+            end = s.index(l, start)
+            return loads(s[start:end])
+        except Exception as exception:
+            error(exception)
+            login(userid, b)
+            wait(2)
+            b.execute_script(f'window.location.href = "https://rewards.bing.com/?signin=1"')
+            wait(5)
 
 
-def check_points(b: w, userid: int, prettyprint: bool = True) -> int:
-    rg, dd = 'redeemGoal', dashboard_data(b=b)['userStatus']
+def check_points(b: webdriver, userid: int, prettyprint: bool = True) -> int:
+    rg, dd = 'redeemGoal', dashboard_data(b=b, userid=userid)['userStatus']
     points, goal_price = dd['availablePoints'], dd[rg]['price']
     if prettyprint:
         cp(f'[INFO] {gd(userid)} has an account balance of {points} points!', "purple")
@@ -291,8 +322,8 @@ def logo(legend: bool):
         print("Legend: \033[91m[ERROR] \033[92m[SUCCESS] \033[93m[ATTEMPT] \033[95m[INFO]\n\n")
 
 
-def complete_daily_set(b: w, userid: int):
-    d = dashboard_data(b=b)['dailySetPromotions']
+def complete_daily_set(b: webdriver, userid: int):
+    d = dashboard_data(b=b, userid=userid)['dailySetPromotions']
     todaydate, todaypack = datetime.today().strftime('%m/%d/%Y'), []
     for datedate, data in d.items():
         if datedate == todaydate:
@@ -307,7 +338,8 @@ def complete_daily_set(b: w, userid: int):
                 if activity['pointProgressMax'] == 50 and activity['pointProgress'] == 0:
                     cp(f'[INFO] Completing daily set {str(card_number)} (this or that)', "purple")
                     daily_set_this_or_that(card_number, b, userid)
-                elif (activity['pointProgressMax'] == 40 or activity['pointProgressMax'] == 30) and activity['pointProgress'] == 0:
+                elif (activity['pointProgressMax'] == 40 or activity['pointProgressMax'] == 30) and activity[
+                    'pointProgress'] == 0:
                     cp(f'[INFO] Completing daily set {str(card_number)} (quiz)', "purple")
                     daily_set_quiz(card_number, b=b, userid=userid)
                 elif activity['pointProgressMax'] == 10 and activity['pointProgress'] == 0:
@@ -326,7 +358,7 @@ def complete_daily_set(b: w, userid: int):
                         daily_set_variable_activity(card_number, b=b, userid=userid)
 
 
-def daily_set_search(card_number: int, b: w, userid: int):
+def daily_set_search(card_number: int, b: webdriver, userid: int):
     wait(5)
     b.find_element(By.XPATH,
                    f'//*[@id="app-host"]/ui-view/mee-rewards-dashboard/main/div/mee-rewards-daily-set-section/div/mee-card-group/div/mee-card[{str(card_number)}]/div/card-content/mee-rewards-daily-set-item-content/div/a/div/span').click()
@@ -334,13 +366,13 @@ def daily_set_search(card_number: int, b: w, userid: int):
     b.switch_to.window(window_name=b.window_handles[1])
     sign_in(b, userid)
     wait(4)
-    b.close()  # todo: potential issue
+    b.close()
     wait(2)
     b.switch_to.window(window_name=b.window_handles[0])
     wait(2)
 
 
-def daily_set_survey(card_number: int, b: w, userid: int):
+def daily_set_survey(card_number: int, b: webdriver, userid: int):
     wait(5)
     b.find_element(By.XPATH,
                    f'//*[@id="app-host"]/ui-view/mee-rewards-dashboard/main/div/mee-rewards-daily-set-section/div/mee-card-group/div/mee-card[{str(card_number)}]/div/card-content/mee-rewards-daily-set-item-content/div/a/div/span').click()
@@ -365,7 +397,7 @@ def daily_set_survey(card_number: int, b: w, userid: int):
     wait(2)
 
 
-def daily_set_quiz(card_number: int, b: w, userid: int):
+def daily_set_quiz(card_number: int, b: webdriver, userid: int):
     wait(5)
     b.find_element(By.XPATH,
                    f'//*[@id="app-host"]/ui-view/mee-rewards-dashboard/main/div/mee-rewards-daily-set-section[1]/div/mee-card-group[1]/div[1]/mee-card[{str(card_number)}]/div[1]/card-content[1]/mee-rewards-daily-set-item-content[1]/div[1]/a[1]/div[3]/span[1]').click()
@@ -373,6 +405,7 @@ def daily_set_quiz(card_number: int, b: w, userid: int):
     b.switch_to.window(window_name=b.window_handles[1])
     sign_in(b, userid)
     wait(12)
+
     if not wait_until_q_loads(b=b):
         cu = b.current_window_handle
         for handle in b.window_handles:
@@ -384,6 +417,11 @@ def daily_set_quiz(card_number: int, b: w, userid: int):
         b.switch_to.window(cu)
         wait(0.5)
         b.get('https://rewards.microsoft.com/')
+        try:
+            wait(2)
+            login(userid, b)
+        except NoSuchElementException:
+            pass
         return
     # Accept cookie popup
     if element_exist(By.ID, 'bnp_container', b=b):
@@ -433,7 +471,7 @@ def daily_set_quiz(card_number: int, b: w, userid: int):
     wait(2)
 
 
-def daily_set_variable_activity(card_number: int, b: w, userid: int):
+def daily_set_variable_activity(card_number: int, b: webdriver, userid: int):
     wait(2)
     b.find_element(By.XPATH,
                    f'//*[@id="app-host"]/ui-view/mee-rewards-dashboard/main/div/mee-rewards-daily-set-section/div/mee-card-group/div/mee-card[{str(card_number)}]/div/card-content/mee-rewards-daily-set-item-content/div/a/div/span').click()
@@ -489,7 +527,7 @@ def daily_set_variable_activity(card_number: int, b: w, userid: int):
     wait(2)
 
 
-def daily_set_this_or_that(card_number: int, b: w, userid: int):
+def daily_set_this_or_that(card_number: int, b: webdriver, userid: int):
     wait(2)
     b.find_element(By.XPATH,
                    f'//*[@id="app-host"]/ui-view/mee-rewards-dashboard/main/div/mee-rewards-daily-set-section/div/mee-card-group/div/mee-card[{str(card_number)}]/div/card-content/mee-rewards-daily-set-item-content/div/a/div/span').click()
@@ -512,6 +550,11 @@ def daily_set_this_or_that(card_number: int, b: w, userid: int):
         b.switch_to.window(cu)
         wait(0.5)
         b.get('https://rewards.microsoft.com/')
+        try:
+            wait(2)
+            login(userid, b)
+        except NoSuchElementException:
+            pass
         return
 
     b.find_element(By.XPATH, '//*[@id="rqStartQuiz"]').click()
@@ -556,7 +599,7 @@ def get_answer_code(key: str, string: str) -> str:
     return str(t)
 
 
-def wait_until_q_loads(b: w, quiz_question: Literal["quiz", "questions"] = "quiz"):
+def wait_until_q_loads(b: webdriver, quiz_question: Literal["quiz", "questions"] = "quiz"):
     tries = 0
     refreshcount = 0
     while True:
@@ -564,10 +607,9 @@ def wait_until_q_loads(b: w, quiz_question: Literal["quiz", "questions"] = "quiz
             if quiz_question == "quiz":
                 b.find_element(By.XPATH, '//*[@id="currentQuestionContainer"]')
             elif quiz_question == "questions":
-                b.find_elements(By.CLASS_NAME, 'rqECredits')[0]
+                _ = b.find_elements(By.CLASS_NAME, 'rqECredits')[0]
             return True
-        except Exception as e:
-            error(e)
+        except NoSuchElementException:
             if tries < 10:
                 tries += 1
                 wait(0.5)
@@ -581,7 +623,7 @@ def wait_until_q_loads(b: w, quiz_question: Literal["quiz", "questions"] = "quiz
                     return False
 
 
-def complete_punch_card(url: str, cpromo: dict, b: w):
+def complete_punch_card(url: str, cpromo: dict, b: webdriver):
     b.get(url)
     for child in cpromo:
         if not child['complete']:
@@ -640,8 +682,8 @@ def complete_punch_card(url: str, cpromo: dict, b: w):
                 break
 
 
-def complete_punch_cards(b: w):
-    puc = dashboard_data(b)['punchCards']
+def complete_punch_cards(b: webdriver, userid: int):
+    puc = dashboard_data(b, userid)['punchCards']
     for punchCard in puc:
         if punchCard['parentPromotion'] is not None and punchCard['childPromotions'] is not None and \
                 punchCard['parentPromotion']['complete'] is False and punchCard['parentPromotion'][
@@ -663,7 +705,7 @@ def complete_punch_cards(b: w):
     wait(2)
 
 
-def complete_more_promotion_search(card_number: int, b: w):
+def complete_more_promotion_search(card_number: int, b: webdriver):
     b.find_element(By.XPATH,
                    f'//*[@id="app-host"]/ui-view/mee-rewards-dashboard/main/div/mee-rewards-more-activities-card/mee-card-group/div/mee-card[{str(card_number)}]/div/card-content/mee-rewards-more-activities-card-item/div/a/div/span').click()
     wait(1)
@@ -675,7 +717,7 @@ def complete_more_promotion_search(card_number: int, b: w):
     wait(2)
 
 
-def complete_more_promotion_quiz(card_number: int, b: w):
+def complete_more_promotion_quiz(card_number: int, b: webdriver):
     b.find_element(By.XPATH,
                    f'//*[@id="app-host"]/ui-view/mee-rewards-dashboard/main/div/mee-rewards-more-activities-card/mee-card-group/div/mee-card[{str(card_number)}]/div/card-content/mee-rewards-more-activities-card-item/div/a/div/span').click()
     wait(1)
@@ -720,7 +762,7 @@ def complete_more_promotion_quiz(card_number: int, b: w):
     wait(2)
 
 
-def complete_more_promotions_abc(card_number: int, b: w):
+def complete_more_promotions_abc(card_number: int, b: webdriver):
     b.find_element(By.XPATH,
                    f'//*[@id="app-host"]/ui-view/mee-rewards-dashboard/main/div/mee-rewards-more-activities-card/mee-card-group/div/mee-card[{str(card_number)}]/div/card-content/mee-rewards-more-activities-card-item/div/a/div/span').click()
     wait(1)
@@ -739,7 +781,7 @@ def complete_more_promotions_abc(card_number: int, b: w):
     wait(2)
 
 
-def complete_more_promotion_this_or_that(card_number: int, b: w):
+def complete_more_promotion_this_or_that(card_number: int, b: webdriver):
     b.find_element(By.XPATH,
                    f'//*[@id="app-host"]/ui-view/mee-rewards-dashboard/main/div/mee-rewards-more-activities-card/mee-card-group/div/mee-card[{str(card_number)}]/div/card-content/mee-rewards-more-activities-card-item/div/a/div/span').click()
     wait(1)
@@ -777,8 +819,8 @@ def complete_more_promotion_this_or_that(card_number: int, b: w):
     wait(2)
 
 
-def complete_more_promotions(b: w):
-    mp = dashboard_data(b=b)['morePromotions']
+def complete_more_promotions(b: webdriver, userid: int):
+    mp = dashboard_data(b=b, userid=userid)['morePromotions']
     itera = 0
     for promotion in mp:
         itera += 1
@@ -800,19 +842,20 @@ def complete_more_promotions(b: w):
             complete_more_promotion_search(itera, b=b)
 
 
-def sign_in(b: w, userid: int) -> None:
+def sign_in(b: webdriver, userid: int):
     """for those stupid times when it doesn't register you signing in"""
     if str(b.current_url).split('?')[0] == "https://www.bing.com/rewards/signin":
-        # b.findElement(By.xpath("//a[@href='/docs/configuration']")).click();
+        # desktop_browser.findElement(By.xpath("//a[@href='/docs/configuration']")).click();
         WDWait(b, 100).until(ec.element_to_be_clickable((By.XPATH, "/html/body/div[2]/div[2]/span/a"))).click()
         cp("[INFO] Re-signed in, due to a bug in Microsoft Rewards.", "purple")
         wait(1)
+
     if str(b.current_url).split('?')[0] == "https://login.live.com/login.srf":
         WDWait(b, 100).until(ec.element_to_be_clickable(password)).send_keys(gd(userid, "password"))
         WDWait(b, 100).until(ec.element_to_be_clickable(next_button)).click()
 
 
-def mobile_sign_in(userid: int, b: w):
+def mobile_sign_in(userid: int, b: webdriver):
     b.execute_script(f'window.location.href = "https://bing.com/?q={sa[randint(0, len(sa) - 1)]}";')
     wait(2)
     b.find_element(By.ID, 'mHamburger').click()
@@ -823,8 +866,17 @@ def mobile_sign_in(userid: int, b: w):
     except NoSuchElementException:
         return
 
+    wait(3)
+
     try:
-        if b.find_element(By.ID, 'hb_n').text.lower().replace(" ", "") in gd(userid, "username"):  # or not element_exist(By.ID, 'hb_s', b=b):
+        if b.find_element(By.ID, 'id_s').text == "Sign in":
+            WDWait(b, 100).until(ec.element_to_be_clickable((By.ID, 'id_s'))).click()
+    except NoSuchElementException:
+        pass
+
+    try:
+        if b.find_element(By.ID, 'hb_n').text.lower().replace(" ", "") in gd(userid,
+                                                                             "username"):  # or not element_exist(By.ID, 'hb_s', desktop_browser=desktop_browser):
             return
         else:
             WDWait(b, 100).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="id_prov_cont"]'))).click()
@@ -837,7 +889,7 @@ def mobile_sign_in(userid: int, b: w):
         pass
 
 
-def another_stupid_sign_in(userid: int, b: w):
+def another_stupid_sign_in(userid: int, b: webdriver):
     b.execute_script(f'window.location.href = "https://bing.com/?q={sa[randint(0, 9999)]}";')
     wait(2)
 
@@ -848,17 +900,21 @@ def another_stupid_sign_in(userid: int, b: w):
         pass
 
     try:
-        logged_in_account = b.find_element(By.ID, 'id_n').text
-        if logged_in_account.lower().replace(" ", "") in gd(userid):
+        if b.find_element(By.ID, 'id_n').text.lower().replace(" ", "") in gd(userid):
             return
         else:
-            WDWait(b, 100).until(ec.element_to_be_clickable((By.ID, 'id_n'))).click()
-            wait(0.5)
-            WDWait(b, 100).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="b_idProviders"]/li[1]/a/span[2]'))).click()
-            wait(4)
-            cp('[INFO] Bing did not automatically connect to your specified M$ Rewards account, it has automatically been resolved now.',
-               "purple")
-            b.switch_to.window(window_name=b.window_handles[0])
+            try:
+                WDWait(b, 100).until(ec.element_to_be_clickable((By.ID, 'id_n'))).click()
+            except ElementClickInterceptedException:
+                WDWait(b, 100).until(ec.element_to_be_clickable((By.ID, 'id_p'))).click()
+            finally:
+                wait(0.5)
+                WDWait(b, 100).until(
+                    ec.element_to_be_clickable((By.XPATH, '//*[@id="b_idProviders"]/li[1]/a/span[2]'))).click()
+                wait(4)
+                cp('[INFO] Bing did not automatically connect to your specified M$ Rewards account, it has automatically be'
+                   'en resolved now.', "purple")
+                b.switch_to.window(window_name=b.window_handles[0])
     except NoSuchElementException:
         pass
 
@@ -868,8 +924,9 @@ def another_stupid_sign_in(userid: int, b: w):
 
     if "/welcome" in b.current_url:
         wait(3)
-        WDWait(b, 100).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="start-earning-rewards-link"]'))).click()
+        WDWait(b, 100).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="raf-signin-link-id"]'))).click()
         try:
+            wait(2)
             login(userid, b)
         except NoSuchElementException:
             pass
@@ -878,26 +935,26 @@ def another_stupid_sign_in(userid: int, b: w):
 
 
 def calculate(microsoft_gift_card: bool, purchase_cost: int, acc: int, daily_points: int):
-    needed_gift_cards = c(purchase_cost / 5)
+    needed_gift_cards = ceil(purchase_cost / 5)
     needed_points_per_account = 0
     if acc == 1:
         if microsoft_gift_card:
             needed_points_per_account += needed_gift_cards * 4750
         else:
             needed_points_per_account += needed_gift_cards * 6750
-        estimated_time = c(needed_points_per_account / daily_points)
+        estimated_time = ceil(needed_points_per_account / daily_points)
         excess_value = purchase_cost - (needed_gift_cards * 5)
         print(
             f'It will take {estimated_time} days to get {needed_gift_cards} $5 gift cards to purchase your item that costs ${purchase_cost}, therefore an excess giftcard value of ${excess_value}')
         return estimated_time
     elif acc >= 2:
-        gift_cards_needed_per_account = c(needed_gift_cards / acc)
+        gift_cards_needed_per_account = ceil(needed_gift_cards / acc)
 
         if microsoft_gift_card:
             needed_points_per_account += gift_cards_needed_per_account * 4750
         else:
             needed_points_per_account += gift_cards_needed_per_account * 6750
-        estimated_time = c(needed_points_per_account / daily_points)
+        estimated_time = ceil(needed_points_per_account / daily_points)
         excess_value = (gift_cards_needed_per_account * 5 * acc) - purchase_cost
         cp(f'It is estimated that it will take {estimated_time} days to get {needed_gift_cards} $5 gift cards ({gift_cards_needed_per_account} giftcards on each of the {acc} accounts) to purchase your item that costs ${purchase_cost}, leaving you an excess giftcard value of ${excess_value}!',
            "green")
@@ -911,11 +968,8 @@ def stepback(number: int, maximum: int) -> int:
     eg. if number = 7 and maximum = 2 the result is 1
     because 0 1 2  0 1 2  0 1  (it's starting at 0)"""
     iteration, result = 0, 0
-    if number <= maximum:
+    if (number <= maximum) or (number <= 0):
         return number
-
-    if number <= 0:
-        return 0
 
     for _ in range(0, number):
         if result == maximum:
@@ -924,6 +978,15 @@ def stepback(number: int, maximum: int) -> int:
             result += 1
 
     return result
+
+
+def closebrowser(b: webdriver):
+    loop: bool = True
+    while loop:
+        try:
+            b.close()
+        except NoSuchWindowException:
+            loop = False
 
 
 class Timer:
@@ -957,150 +1020,374 @@ class Timer:
         return elapsed_time
 
 
+class Terminal:
+    def __init__(self, start_text: str = "", end_text: str = ""):
+        self.start = start_text
+        self.end = end_text
+        self.cls = "cls"
+
+    def write(self, text: str):
+        stdout.write(self.start + text + self.end)
+
+    def clear(self):
+        systemwrite(self.cls)
+
+
 #############
 #  Execute  #
 #############
-def main(u: int):
-    # Desktop search
-    def desktop():
-        b = create_b_instance(mobile_instance=False)
+def main(retry: int):
+    try:
+        for mainuserid in range(accounts):
+            u = mainuserid + skip
 
-        try:
-            login(u, b)
-        except Exception as e:
-            error(e)
+            # Desktop search
             try:
-                login(u, b)
+                desktop_browser = create_b_instance(mobile_instance=False)
+
+                try:
+                    login(u, desktop_browser)
+                except Exception as e:
+                    error(e)
+                    try:
+                        login(u, desktop_browser)
+                    except Exception as e:
+                        error(e)
+
+                wait(5)
+
+                try:
+                    another_stupid_sign_in(userid=u, b=desktop_browser)
+                except Exception as e:
+                    error(e)
+                    try:
+                        another_stupid_sign_in(u, desktop_browser)
+                    except Exception as e:
+                        error(e)
+
+                wait(60 if not args.fast else 10)
+
+                try:
+                    check_points(desktop_browser, u)
+                except Exception as e:
+                    error(e)
+                    try:
+                        check_points(desktop_browser, u)
+                    except Exception as e:
+                        error(e)
+
+                try:
+                    complete_daily_set(desktop_browser, u)
+                except Exception as e:
+                    error(e)
+                    try:
+                        complete_daily_set(desktop_browser, u)
+                    except Exception as e:
+                        error(e)
+
+                wait(60 if not args.fast else 10)
+
+                try:
+                    complete_punch_cards(desktop_browser, u)
+                except Exception as e:
+                    error(e)
+                    try:
+                        complete_punch_cards(desktop_browser, u)
+                    except Exception as e:
+                        error(e)
+
+                wait(60 if not args.fast else 10)
+
+                try:
+                    complete_more_promotions(desktop_browser, u)
+                except Exception as e:
+                    error(e)
+                    try:
+                        complete_more_promotions(desktop_browser, u)
+                    except Exception as e:
+                        error(e)
+
+                wait(60 if not args.fast else 10)
+                search(34, desktop_browser, u)
+                wait(20)
+
+                try:
+                    logout(u, desktop_browser)
+                except Exception as e:
+                    error(e)
+                    try:
+                        logout(u, desktop_browser)
+                    except Exception as e:
+                        error(e)
+
+                wait(2)
+
+                try:
+                    desktop_browser.close()
+                except Exception as e:
+                    error(e)
+                    try:
+                        desktop_browser.close()
+                    except Exception as e:
+                        error(e)
+                cp(f"[SUCCESS] {gd(u)} has completed it's daily desktop Microsoft Reward tasks, now trying mobile searches.",
+                   "green")
+            except NoSuchWindowException:
+                timer.result(print_result=True, colour="red")
+                error("M$ Rewards stopped. (Window closed forcefully)", showlinenumber=False, finishprocess=True)
+            except TimeoutException or TimeoutError as err:
+                timer.result(print_result=True, colour="red")
+                error(f"M$ Rewards stopped. (Timed out) Read below for more deatils\n{err}", showlinenumber=False,
+                      finishprocess=True)
+            except IndexError:
+                timer.result(print_result=True, colour="red")
+                error(f"M$ Rewards stopped. (Out of index. index: {u})")
             except Exception as e:
                 error(e)
+                try:
+                    desktop_browser = create_b_instance(mobile_instance=False)
 
-        wait(5)
+                    try:
+                        login(u, desktop_browser)
+                    except Exception as e:
+                        error(e)
+                        try:
+                            login(u, desktop_browser)
+                        except Exception as e:
+                            error(e)
 
-        try:
-            another_stupid_sign_in(userid=u, b=b)
-        except Exception as e:
-            error(e)
-            another_stupid_sign_in(u, b)
+                    wait(5)
+
+                    try:
+                        another_stupid_sign_in(userid=u, b=desktop_browser)
+                    except Exception as e:
+                        error(e)
+                        try:
+                            another_stupid_sign_in(u, desktop_browser)
+                        except Exception as e:
+                            error(e)
+
+                    wait(60 if not args.fast else 10)
+
+                    try:
+                        check_points(desktop_browser, u)
+                    except Exception as e:
+                        error(e)
+                        try:
+                            check_points(desktop_browser, u)
+                        except Exception as e:
+                            error(e)
+
+                    try:
+                        complete_daily_set(desktop_browser, u)
+                    except Exception as e:
+                        error(e)
+                        try:
+                            complete_daily_set(desktop_browser, u)
+                        except Exception as e:
+                            error(e)
+
+                    wait(60 if not args.fast else 10)
+
+                    try:
+                        complete_punch_cards(desktop_browser, u)
+                    except Exception as e:
+                        error(e)
+                        try:
+                            complete_punch_cards(desktop_browser, u)
+                        except Exception as e:
+                            error(e)
+
+                    wait(60 if not args.fast else 10)
+
+                    try:
+                        complete_more_promotions(desktop_browser, u)
+                    except Exception as e:
+                        error(e)
+                        try:
+                            complete_more_promotions(desktop_browser, u)
+                        except Exception as e:
+                            error(e)
+
+                    wait(60 if not args.fast else 10)
+                    search(34, desktop_browser, u)
+                    wait(20)
+
+                    try:
+                        logout(u, desktop_browser)
+                    except Exception as e:
+                        error(e)
+                        try:
+                            logout(u, desktop_browser)
+                        except Exception as e:
+                            error(e)
+
+                    wait(2)
+
+                    try:
+                        desktop_browser.close()
+                    except Exception as e:
+                        error(e)
+                        try:
+                            desktop_browser.close()
+                        except Exception as e:
+                            error(e)
+                    cp(f"[SUCCESS] {gd(u)} has completed it's daily desktop Microsoft Reward tasks, now trying mobile searches.",
+                       "green")
+                except Exception as e:
+                    error(e)
+
+            # Mobile search
             try:
-                login(u, b)
+                mobile_desktop = create_b_instance(mobile_instance=True)
+
+                try:
+                    login(u, mobile_desktop)
+                except Exception as e:
+                    error(e)
+                    try:
+                        login(u, mobile_desktop)
+                    except Exception as e:
+                        error(e)
+
+                wait(5)
+
+                try:
+                    mobile_sign_in(u, mobile_desktop)
+                except Exception as e:
+                    error(e)
+                    try:
+                        mobile_sign_in(u, mobile_desktop)
+                    except Exception as e:
+                        error(e)
+
+                wait(5)
+                search(30, mobile_desktop, u)
+                wait(60 if not args.fast else 10)
+
+                wait(5)
+
+                try:
+                    mobile_desktop.execute_script('window.location.href = "https://rewards.bing.com/?signin=1"')
+                    wait(3)
+                    check_points(mobile_desktop, u)
+                except ElementNotInteractableException:
+                    cp("[Error] Unable to retrieve current points", "red")
+
+                wait(5)
+
+                try:
+                    logout(u, mobile_desktop)
+                except Exception as e:
+                    error(e)
+                    try:
+                        logout(u, mobile_desktop)
+                    except Exception as e:
+                        error(e)
+
+                wait(2)
+                try:
+                    mobile_desktop.close()
+                except Exception as e:
+                    error(e)
+                    try:
+                        mobile_desktop.close()
+                    except Exception as e:
+                        error(e)
+
+                wait(5)
+            except NoSuchWindowException:
+                timer.result(print_result=True, colour="red")
+                error("M$ Rewards stopped. (Window closed forcefully)", showlinenumber=False, finishprocess=True)
+            except TimeoutException or TimeoutError as err:
+                timer.result(print_result=True, colour="red")
+                error(f"M$ Rewards stopped. (Timed out) Read below for more deatils\n{err}", showlinenumber=False,
+                      finishprocess=True)
+            except IndexError:
+                timer.result(print_result=True, colour="red")
+                error(f"M$ Rewards stopped. (Out of index. index: {u})")
             except Exception as e:
+
                 error(e)
+                try:
+                    mobile_desktop = create_b_instance(mobile_instance=True)
 
-        wait(60 if not args.fast else 10)
+                    try:
+                        login(u, mobile_desktop)
+                    except Exception as e:
+                        error(e)
+                        try:
+                            login(u, mobile_desktop)
+                        except Exception as e:
+                            error(e)
 
-        try:
-            complete_daily_set(b, u)
-        except Exception as e:
-            error(e)
-            try:
-                complete_daily_set(b, u)
-            except Exception as e:
-                error(e)
+                    wait(5)
 
-        wait(60 if not args.fast else 10)
+                    try:
+                        mobile_sign_in(u, mobile_desktop)
+                    except Exception as e:
+                        error(e)
+                        try:
+                            mobile_sign_in(u, mobile_desktop)
+                        except Exception as e:
+                            error(e)
 
-        try:
-            complete_punch_cards(b)
-        except Exception as e:
-            error(e)
-            try:
-                complete_punch_cards(b)
-            except Exception as e:
-                error(e)
+                    wait(5)
+                    search(30, mobile_desktop, u)
+                    wait(60 if not args.fast else 10)
 
-        wait(60 if not args.fast else 10)
+                    wait(5)
 
-        try:
-            complete_more_promotions(b=b)
-        except Exception as e:
-            error(e)
-            try:
-                complete_more_promotions(b=b)
-            except Exception as e:
-                error(e)
+                    try:
+                        mobile_desktop.execute_script('window.location.href = "https://rewards.bing.com/?signin=1"')
+                        wait(3)
+                        check_points(mobile_desktop, u)
+                    except ElementNotInteractableException:
+                        cp("[Error] Unable to retrieve current points", "red")
 
-        wait(60 if not args.fast else 10)
-        search(34, b, u)
-        wait(20)
+                    wait(5)
 
-        try:
-            logout(u, b)
-        except Exception as e:
-            error(e)
-            try:
-                logout(u, b)
-            except Exception as e:
-                error(e)
+                    try:
+                        logout(u, mobile_desktop)
+                    except Exception as e:
+                        error(e)
+                        try:
+                            logout(u, mobile_desktop)
+                        except Exception as e:
+                            error(e)
 
-        wait(2)
+                    wait(2)
+                    try:
+                        mobile_desktop.close()
+                    except Exception as e:
+                        error(e)
+                        try:
+                            mobile_desktop.close()
+                        except Exception as e:
+                            error(e)
 
-        try:
-            b.close()
-        except Exception as e:
-            error(e)
-            try:
-                b.close()
-            except Exception as e:
-                error(e)
-        cp(f"[SUCCESS] {gd(u)} has completed it's daily Microsoft Reward tasks.", "green")
-
-    # Mobile search
-    def mobile():
-        b = create_b_instance(mobile_instance=True)
-
-        try:
-            login(u, b)
-        except Exception as e:
-            error(e)
-            try:
-                login(u, b)
-            except Exception as e:
-                error(e)
-
-        wait(5)
-
-        try:
-            mobile_sign_in(u, b)
-        except Exception as e:
-            error(e)
-            try:
-                mobile_sign_in(u, b)
-            except Exception as e:
-                error(e)
-
-        wait(5)
-        search(30, b, u)
-        wait(60 if not args.fast else 10)
-
-        try:
-            logout(u, b)
-        except Exception as e:
-            error(e)
-            try:
-                logout(u, b)
-            except Exception as e:
-                error(e)
-
-        wait(2)
-        try:
-            b.close()
-        except Exception as e:
-            error(e)
-            try:
-                b.close()
-            except Exception as e:
-                error(e)
-
-        wait(5)
-
-    desktop()
-    mobile()
+                    wait(5)
+                except Exception as e:
+                    error(e)
+    except KeyboardInterrupt:
+        timer.result(print_result=True, colour="red")
+        error("M$ Rewards stopped. (Keyboard interrupt)", showlinenumber=False, finishprocess=True)
+    # terrible redunancy method but hopefully it's all gucci :)
+    except Exception as e:
+        error(f"{e}\n  -> Unknown error, please read the above error message or submit it to Github")
+        if retry <= 5:
+            retry += 1
+            main(retry)
 
 
 if __name__ == '__main__':
-    logo(False if args.calculatetime else True)
     timer = Timer()
     timer.start()
+
+    terminal = Terminal()
+    terminal.clear()
+
+    logo(True if args.calculatetime is False else False)
 
     if args.bat:
         cp("[INFO] Running from .bat", "purple")
@@ -1108,12 +1395,15 @@ if __name__ == '__main__':
     if args.fast:
         cp("[INFO] Fast mode enabled", "purple")
 
+    if skip >= 1:
+        warn(f"Skipping {skip} account" if accounts == 1 else f"Skipping {skip} accounts")
+
     if tacos != "yes":
         error("You do not like tacos. Script will not run until you fix your opinion in credentials.json",
               finishprocess=True)
 
     if args.delay:
-        delay = randint(1, 30)
+        delay = randint(1, 30) * 60  # 1-30 minutes
         cp(f"[INFO] Delay Enabled (Delayed for {delay} minutes.)", "purple")
         wait(delay)
 
@@ -1124,25 +1414,18 @@ if __name__ == '__main__':
                 "How much does it cost to buy your item"],
             acc=json['config']['How many accounts are you using?'],
             daily_points=json['calculate time config']['estimated daily points'])
-    else:
-        try:
-            for mainuserid in range(0, accounts):
-                main(mainuserid)
-        except KeyboardInterrupt:
-            keyboardinterupt = True
-            error("M$ Rewards stopped. (Keyboard Interrupt)", showlinenumber=False, finishprocess=True)
 
-        if args.logs:
-            cp('Attempting to write logs', "yellow")
-            try:
-                cp('Successfully written to logs.json.', "green")
-            except Exception as log_e:
-                error(log_e)
-                cp('Failed to write logs, retrying...', "yellow")
-                try:
-                    cp('Successfully written to logs.json.', "green")
-                except Exception as log_e:
-                    error(log_e)
-                    error('Failed to write logs.')
+    if args.calculatetime is False:
+        for _ in range(redundancy):
+            # cron
+            if cron == "HH:MM":
+                main(retries)
+            if cron == ("" or None):
+                error("CRON FAILED")
+            else:
+                while True:
+                    if datetime.now().strftime("%H:%M") == cron:
+                        main(retries)
+                    wait(30)
 
-    print(timer.result(False) if not args.calculatetime or keyboardinterupt else "")
+    terminal.write(f"\n{timer.result(False)}" if args.calculatetime is False else "")
