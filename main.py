@@ -416,7 +416,7 @@ def daily_set_quiz(card_number: int, b: webdriver, userid: int):
                 wait(0.5)
         b.switch_to.window(cu)
         wait(0.5)
-        b.get('https://rewards.microsoft.com/')
+        b.get('https://rewards.bing.com/')
         try:
             wait(2)
             login(userid, b)
@@ -549,7 +549,7 @@ def daily_set_this_or_that(card_number: int, b: webdriver, userid: int):
                 wait(0.5)
         b.switch_to.window(cu)
         wait(0.5)
-        b.get('https://rewards.microsoft.com/')
+        b.get('https://rewards.bing.com/')
         try:
             wait(2)
             login(userid, b)
@@ -690,8 +690,8 @@ def complete_punch_cards(b: webdriver, userid: int):
             'pointProgressMax'] != 0:
             url = punchCard['parentPromotion']['attributes']['destination']
             if b.current_url.startswith('https://rewards.'):
-                path = url.replace('https://rewards.microsoft.com', '')
-                new_url = 'https://rewards.microsoft.com/dashboard/'
+                path = url.replace('https://rewards.bing.com', '')
+                new_url = 'https://rewards.bing.com/dashboard/'
                 uc = path[11:15]
                 dest = new_url + uc + path.split(uc)[1]
             else:
@@ -701,7 +701,7 @@ def complete_punch_cards(b: webdriver, userid: int):
                 dest = new_url + uc + path.split(uc)[1]
             complete_punch_card(dest, punchCard['childPromotions'], b)
     wait(2)
-    b.get('https://rewards.microsoft.com/dashboard/')
+    b.get('https://rewards.bing.com/dashboard/')
     wait(2)
 
 
@@ -838,7 +838,7 @@ def complete_more_promotions(b: webdriver, userid: int):
                 if promotion['pointProgressMax'] == 100 or promotion['pointProgressMax'] == 200:
                     complete_more_promotion_search(itera, b=b)
         if promotion['complete'] is False and promotion['pointProgressMax'] == 100 and promotion[
-            'promotionType'] == "" and promotion['destinationUrl'] == "https://rewards.microsoft.com":
+            'promotionType'] == "" and promotion['destinationUrl'] == "https://rewards.bing.com":
             complete_more_promotion_search(itera, b=b)
 
 
