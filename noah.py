@@ -126,6 +126,7 @@ def create_b_instance(mobile_instance: bool) -> webdriver:
 
     options.add_argument('lang=en-AU')
     options.add_argument('--disable-blink-features=AutomationControlled')
+    options.add_argument("--incognito")
     options.add_experimental_option("prefs", preference)
     options.add_experimental_option("useAutomationExtension", False)
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
@@ -137,9 +138,6 @@ def create_b_instance(mobile_instance: bool) -> webdriver:
 
     try:
         b = webdriver.Edge(service=Service(DriverManager().install()), options=options)
-        b.get(f'window.location.href = "https://rewards.bing.com/Signout";')
-        b.execute_script(f'window.location.href = "https://rewards.bing.com/Signout";')
-        wait(10)
         b.get('https://login.live.com/')
         return b
     except Exception as exception:
