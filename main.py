@@ -36,9 +36,9 @@ _ = \
 #  USER CONFIG  #
 #################
 credentials_file = 'credentials.json'  # If you downloaded the source files, no need to change this.
-skip: int = 0  # default: 0
-redundancy: int = 2  # default: 2
-cron: str = "HH:MM"  # when to run script daily in format of HH:MM eg. "15:30" = 5:30 pm or just don't use it because it's probably bugged
+skip: int = 2  # default: 0  THIS WILL RETURN AN ERROR WHEN ALL ACCOUNTS ARE COMPLETED AND IT TRIES TO DO THE SKIPPED ONES
+redundancy: int = 3  # default: 2
+cron: str = "HH:MM"  # when to run script daily in format of HH:MM eg. "15:30" = 5:30 pm
 
 #####################
 #  ADVANCED CONFIG  #
